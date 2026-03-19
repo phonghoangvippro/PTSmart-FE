@@ -2,15 +2,25 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../shared/components/Sidebar';
 import Header from '../../shared/components/Header';
 import { getBanners, createBanner, updateBanner, deleteBanner } from './bannerAPI';
+import { getSettings, updateSettings } from './settingsAPI';
 import './Settings.css';
 
 const IMG_BASE = 'http://127.0.0.1:8000';
 
 const Settings = () => {
-  const [banners, setBanners] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // --------- SETTINGS STATE ---------
+  const [siteName, setSiteName] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [hotline, setHotline] = useState('');
+  const [shippingFee, setShippingFee] = useState('');
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
-  // Banner Modal state
+  // --------- BANNERS STATE ---------
+  const [banners, setBanners] = useState([]);
+  const [loadingBanners, setLoadingBanners] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
   
@@ -24,27 +34,84 @@ const Settings = () => {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(null);
-  const [error, setError] = useState(null);
+  const [savingBanner, setSavingBanner] = useState(false);
+  const [deletingBanner, setDeletingBanner] = useState(null);
+  const [errorBanner, setErrorBanner] = useState(null);
 
-  const fetchBanners = useCallback(async () => {
-    setLoading(true);
+  // --------- FETCH DATA ---------
+  const fetchData = useCallback(async () => {
+    setSettingsLoading(true);
+    setLoadingBanners(true);
     try {
-      const data = await getBanners();
-      setBanners(Array.isArray(data) ? data : (data.data || []));
+      // Fetch Settings
+      const settingsData = await getSettings();
+      // the api returns { site_name, support_email, hotline, default_shipping_fee, site_logo }
+      const s = settingsData || {};
+      setSiteName(s.site_name || '');
+      setSupportEmail(s.support_email || '');
+      setHotline(s.hotline || '');
+      setShippingFee(s.default_shipping_fee || '');
+      if (s.site_logo) setLogoPreview(`${IMG_BASE}${s.site_logo}`);
+      
+      // Fetch Banners
+      const bannersData = await getBanners();
+      setBanners(Array.isArray(bannersData) ? bannersData : (bannersData.data || []));
     } catch (err) {
-      console.error('Failed to load banners:', err);
+      console.error('Failed to load data:', err);
     } finally {
-      setLoading(false);
+      setSettingsLoading(false);
+      setLoadingBanners(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchBanners();
-  }, [fetchBanners]);
+    fetchData();
+  }, [fetchData]);
 
-  const openCreate = () => {
+  const fetchBannersOnly = async () => {
+    setLoadingBanners(true);
+    try {
+      const data = await getBanners();
+      setBanners(Array.isArray(data) ? data : (data.data || []));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingBanners(false);
+    }
+  };
+
+  // --------- SETTINGS HANDLERS ---------
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSaveGeneral = async () => {
+    setSettingsSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append('site_name', siteName);
+      formData.append('support_email', supportEmail);
+      formData.append('hotline', hotline);
+      formData.append('default_shipping_fee', shippingFee);
+      if (logoFile) {
+        formData.append('site_logo', logoFile);
+      }
+
+      await updateSettings(formData);
+      alert('Đã lưu thông tin chung thành công!');
+    } catch (err) {
+      alert('Lỗi lưu cấu hình: ' + err.message);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  // --------- BANNER HANDLERS ---------
+  const openCreateBanner = () => {
     setEditingBanner(null);
     setTitle('');
     setSubtitle('');
@@ -54,11 +121,11 @@ const Settings = () => {
     setStatus('1');
     setImage(null);
     setImagePreview(null);
-    setError(null);
+    setErrorBanner(null);
     setShowModal(true);
   };
 
-  const openEdit = (banner) => {
+  const openEditBanner = (banner) => {
     setEditingBanner(banner);
     setTitle(banner.title || '');
     setSubtitle(banner.subtitle || '');
@@ -68,11 +135,11 @@ const Settings = () => {
     setStatus(banner.status !== undefined ? banner.status.toString() : '1');
     setImage(null);
     setImagePreview(banner.image ? `${IMG_BASE}${banner.image}` : null);
-    setError(null);
+    setErrorBanner(null);
     setShowModal(true);
   };
 
-  const handleImageChange = (e) => {
+  const handleBannerImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setImage(file);
@@ -80,20 +147,20 @@ const Settings = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const submitBanner = async (e) => {
     e.preventDefault();
     if (!title.trim() || !position.trim()) {
-      setError('Vui lòng điền các trường bắt buộc (Tiêu đề, Vị trí)');
+      setErrorBanner('Vui lòng điền các trường bắt buộc (Tiêu đề, Vị trí)');
       return;
     }
 
     if (!editingBanner && !image) {
-      setError('Vui lòng chọn hình ảnh cho banner mới');
+      setErrorBanner('Vui lòng chọn hình ảnh cho banner mới');
       return;
     }
 
-    setSaving(true);
-    setError(null);
+    setSavingBanner(true);
+    setErrorBanner(null);
     try {
       const formData = new FormData();
       formData.append('title', title.trim());
@@ -113,29 +180,25 @@ const Settings = () => {
         await createBanner(formData);
       }
       setShowModal(false);
-      fetchBanners();
+      fetchBannersOnly();
     } catch (err) {
-      setError(err.message);
+      setErrorBanner(err.message);
     } finally {
-      setSaving(false);
+      setSavingBanner(false);
     }
   };
 
-  const handleDelete = async (id, bTitle) => {
+  const deleteBannerHandler = async (id, bTitle) => {
     if (!window.confirm(`Bạn có chắc muốn xóa banner "${bTitle}"?`)) return;
-    setDeleting(id);
+    setDeletingBanner(id);
     try {
       await deleteBanner(id);
-      fetchBanners();
+      fetchBannersOnly();
     } catch (err) {
       alert('Xóa thất bại: ' + err.message);
     } finally {
-      setDeleting(null);
+      setDeletingBanner(null);
     }
-  };
-
-  const handleSaveGeneral = () => {
-    alert('Đã lưu thông tin chung thành công!');
   };
 
   return (
@@ -152,10 +215,11 @@ const Settings = () => {
             </div>
             <button 
               onClick={handleSaveGeneral}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-primary/20"
+              disabled={settingsSaving || settingsLoading}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
             >
-              <span className="material-symbols-outlined">save</span>
-              Lưu thay đổi chung
+              <span className="material-symbols-outlined">{settingsSaving ? 'hourglass_empty' : 'save'}</span>
+              {settingsSaving ? 'Đang lưu...' : 'Lưu thay đổi chung'}
             </button>
           </div>
 
@@ -166,67 +230,80 @@ const Settings = () => {
               <h3 className="font-bold text-lg">Thông tin chung</h3>
             </div>
             <div className="p-6 space-y-6">
-              {/* Logo Upload */}
-              <div className="flex flex-col md:flex-row gap-8 items-start">
-                <div className="space-y-3 w-full md:w-1/3">
-                  <label className="text-sm font-semibold">Logo Website</label>
-                  <div className="relative group">
-                    <div className="w-48 h-48 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center gap-3 overflow-hidden cursor-pointer group-hover:border-primary/50 transition-colors">
-                      <div className="w-full h-full bg-white flex items-center justify-center p-4">
-                        <div
-                          className="w-full h-full bg-center bg-contain bg-no-repeat"
-                          style={{
-                            backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuB6cOpZqSEIs-1tJkz-usoaFS7JbvudTeA4Bf0AN7e9X_ATy3Km7x8Wyn7WjScq6o6TP1AmuvWsc_6W9YJlvU4ORp8PtKgPLqj-NeqE5WrC57NHPfc_dhb9AikwNZXOWkUgmZK8D7J9EBkB_5Q-ycfELFoim-wz-z9SMZ_UW0qW0u5nGi0JRp0W3qmuexIWXtDrbfZ2iIeRDSjU_PptSD9cz3p73KkVjNAnGVBH3RPsf8VHQPljyh_fwblDs0W-0uOYRQ4nFmfIRA')"
-                          }}
-                        ></div>
-                      </div>
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm">
-                        <span className="text-white text-xs font-bold flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm">upload</span> Thay đổi
-                        </span>
+              {settingsLoading ? (
+                <div className="flex justify-center items-center py-10 text-slate-400">
+                  <span className="material-symbols-outlined animate-spin text-primary text-3xl mr-3">progress_activity</span>
+                  Đang tải thông tin...
+                </div>
+              ) : (
+                <div className="flex flex-col md:flex-row gap-8 items-start">
+                  <div className="space-y-3 w-full md:w-1/3">
+                    <label className="text-sm font-semibold">Logo Website</label>
+                    <div className="relative group">
+                      <div className="w-48 h-48 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center gap-3 overflow-hidden cursor-pointer group-hover:border-primary/50 transition-colors">
+                        <div className="w-full h-full bg-white flex items-center justify-center p-4">
+                          {logoPreview ? (
+                            <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+                          ) : (
+                            <span className="material-symbols-outlined text-4xl text-slate-300">image</span>
+                          )}
+                        </div>
+                        <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm cursor-pointer">
+                          <span className="text-white text-xs font-bold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm">upload</span> Thay đổi
+                          </span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                        </label>
                       </div>
                     </div>
+                    <p className="text-xs text-slate-500 max-w-[192px] leading-relaxed">Định dạng PNG, JPG. Kích thước 400x400px. Tối đa 2MB.</p>
                   </div>
-                  <p className="text-xs text-slate-500 max-w-[192px] leading-relaxed">Định dạng PNG, JPG. Kích thước 400x400px. Tối đa 2MB.</p>
-                </div>
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">Tên website</label>
-                    <input
-                      className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5"
-                      type="text"
-                      defaultValue="PTSmart - Đồ gia dụng thông minh"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">Hotline liên hệ</label>
-                    <input
-                      className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5"
-                      type="text"
-                      defaultValue="1900 1234"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">Email hỗ trợ</label>
-                    <input
-                      className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5"
-                      type="email"
-                      defaultValue="support@ptsmart.vn"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">Phí vận chuyển mặc định</label>
-                    <div className="relative">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Tên website</label>
                       <input
-                        className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5 pr-12 text-slate-900 font-bold"
-                        type="number"
-                        defaultValue="30000"
+                        className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5"
+                        type="text"
+                        value={siteName}
+                        onChange={(e) => setSiteName(e.target.value)}
+                        placeholder="PTSmart"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VNĐ</span>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Hotline liên hệ</label>
+                      <input
+                        className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5"
+                        type="text"
+                        value={hotline}
+                        onChange={(e) => setHotline(e.target.value)}
+                        placeholder="1900 xxxx"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Email hỗ trợ</label>
+                      <input
+                        className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5"
+                        type="email"
+                        value={supportEmail}
+                        onChange={(e) => setSupportEmail(e.target.value)}
+                        placeholder="support@domain.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Phí vận chuyển mặc định</label>
+                      <div className="relative">
+                        <input
+                          className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5 pr-12 text-slate-900 font-bold"
+                          type="number"
+                          value={shippingFee}
+                          onChange={(e) => setShippingFee(e.target.value)}
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VNĐ</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </section>
 
@@ -241,14 +318,14 @@ const Settings = () => {
                 </div>
               </div>
               <button 
-                onClick={openCreate}
+                onClick={openCreateBanner}
                 className="text-sm font-bold bg-slate-100 hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-primary flex items-center gap-2 transition-colors border border-transparent"
               >
                 <span className="material-symbols-outlined text-sm">add</span> Thêm Banner Mới
               </button>
             </div>
             <div className="p-6">
-              {loading ? (
+              {loadingBanners ? (
                 <div className="flex items-center justify-center py-10">
                   <span className="material-symbols-outlined animate-spin text-3xl text-primary">progress_activity</span>
                   <span className="ml-2 text-slate-500 font-medium">Đang tải data từ server...</span>
@@ -262,7 +339,6 @@ const Settings = () => {
                   {banners.map(b => (
                     <div key={b.id} className="group relative flex flex-col gap-4 p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 hover:border-primary/30 transition-colors hover:shadow-md hover:bg-white">
                       
-                      {/* Image Preview Window */}
                       <div className="w-full h-40 rounded-xl overflow-hidden relative bg-slate-100 border border-black/5">
                         {b.image ? (
                           <img 
@@ -276,24 +352,22 @@ const Settings = () => {
                           </div>
                         )}
                         
-                        {/* Overlay Actions */}
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-3 backdrop-blur-[2px]">
                           <button 
-                            onClick={() => openEdit(b)}
+                            onClick={() => openEditBanner(b)}
                             className="bg-white/20 hover:bg-white text-white hover:text-primary backdrop-blur-md px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-1 transition-colors"
                           >
                             <span className="material-symbols-outlined text-[18px]">edit</span> Sửa
                           </button>
                           <button 
-                            onClick={() => handleDelete(b.id, b.title)}
-                            disabled={deleting === b.id}
+                            onClick={() => deleteBannerHandler(b.id, b.title)}
+                            disabled={deletingBanner === b.id}
                             className="bg-red-500/80 hover:bg-red-600 text-white backdrop-blur-md px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-1 transition-colors disabled:opacity-50"
                           >
-                            <span className="material-symbols-outlined text-[18px]">{deleting === b.id ? 'progress_activity' : 'delete'}</span>
+                            <span className="material-symbols-outlined text-[18px]">{deletingBanner === b.id ? 'progress_activity' : 'delete'}</span>
                           </button>
                         </div>
 
-                        {/* Status Label */}
                         <div className="absolute top-3 right-3 shadow-sm">
                           {b.status === 1 ? (
                             <span className="bg-green-500 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full shadow-sm">Đang bật</span>
@@ -303,7 +377,6 @@ const Settings = () => {
                         </div>
                       </div>
                       
-                      {/* Info Text Area */}
                       <div className="flex-1 px-1 flex flex-col justify-between relative">
                          <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -330,10 +403,8 @@ const Settings = () => {
       {/* Modal Cập nhật Banner */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
           
-          {/* Modal Container */}
           <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl p-8 mx-4 max-h-[90vh] overflow-y-auto animate-in border border-slate-100">
             <button 
               onClick={() => setShowModal(false)} 
@@ -349,14 +420,14 @@ const Settings = () => {
               {editingBanner ? 'Chỉnh Sửa Banner' : 'Tạo Banner Mới'}
             </h3>
 
-            {error && (
+            {errorBanner && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-3">
                 <span className="material-symbols-outlined">error</span>
-                <p className="mt-0.5 font-medium">{error}</p>
+                <p className="mt-0.5 font-medium">{errorBanner}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={submitBanner} className="space-y-6">
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="md:col-span-2">
@@ -457,7 +528,7 @@ const Settings = () => {
                       </div>
                       <p className="text-sm font-bold text-slate-700 mb-1">Click vào đây để tải file lên</p>
                       <p className="text-xs text-slate-500 font-medium">Hỗ trợ JPG, PNG, WEBP (Tối đa 10MB)</p>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleBannerImageChange} />
                     </label>
                   )}
               </div>
@@ -472,10 +543,10 @@ const Settings = () => {
                 </button>
                 <button 
                   type="submit" 
-                  disabled={saving} 
+                  disabled={savingBanner} 
                   className="px-6 py-3.5 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 shadow-xl shadow-primary/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 w-2/3 transition-all active:scale-95"
                 >
-                  {saving ? (
+                  {savingBanner ? (
                     <><span className="material-symbols-outlined text-lg animate-spin">progress_activity</span> Đang xử lý...</>
                   ) : (
                     <><span className="material-symbols-outlined text-lg">{editingBanner ? 'save' : 'done'}</span> {editingBanner ? 'Lưu Thông Tin' : 'Tiến Hành Đăng Banner'}</>
