@@ -23,7 +23,14 @@ const Sidebar = () => {
     { path: '/admin', icon: 'dashboard', label: 'Tổng quan' },
     { path: '/admin/products', icon: 'inventory_2', label: 'Sản phẩm' },
     { path: '/admin/categories', icon: 'category', label: 'Danh mục' },
+    { path: '/admin/brands', icon: 'verified', label: 'Thương hiệu' },
     { path: '/admin/orders', icon: 'receipt_long', label: 'Đơn hàng' },
+    { path: '/admin/discounts', icon: 'sell', label: 'Mã giảm giá' },
+    { path: '/admin/flash-sales', icon: 'bolt', label: 'Flash Sale' },
+    { path: '/admin/articles', icon: 'description', label: 'Bài viết' },
+    { path: '/admin/promotions', icon: 'campaign', label: 'Khuyến mãi' },
+    { path: '/admin/contacts', icon: 'contact_support', label: 'Liên hệ' },
+    { path: '/admin/branches', icon: 'storefront', label: 'Chi nhánh' },
     { path: '/admin/users', icon: 'group', label: 'Người dùng' }
   ];
 

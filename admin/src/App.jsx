@@ -9,6 +9,13 @@ import OrderList from './features/orders/OrderList';
 import CategoryList from './features/categories/CategoryList';
 import UserList from './features/users/UserList';
 import Settings from './features/settings/Settings';
+import BrandList from './features/brands/BrandList';
+import DiscountList from './features/discounts/DiscountList';
+import FlashSaleList from './features/flashsales/FlashSaleList';
+import ArticleList from './features/articles/ArticleList';
+import ContactList from './features/contacts/ContactList';
+import PromotionList from './features/promotions/PromotionList';
+import BranchList from './features/branches/BranchList';
 import './App.css';
 
 function App() {
@@ -26,6 +33,13 @@ function App() {
           <Route path="/admin/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute><UserList /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/admin/brands" element={<ProtectedRoute><BrandList /></ProtectedRoute>} />
+          <Route path="/admin/discounts" element={<ProtectedRoute><DiscountList /></ProtectedRoute>} />
+          <Route path="/admin/flash-sales" element={<ProtectedRoute><FlashSaleList /></ProtectedRoute>} />
+          <Route path="/admin/articles" element={<ProtectedRoute><ArticleList /></ProtectedRoute>} />
+          <Route path="/admin/contacts" element={<ProtectedRoute><ContactList /></ProtectedRoute>} />
+          <Route path="/admin/promotions" element={<ProtectedRoute><PromotionList /></ProtectedRoute>} />
+          <Route path="/admin/branches" element={<ProtectedRoute><BranchList /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>
@@ -33,3 +47,4 @@ function App() {
 }
 
 export default App;
+
