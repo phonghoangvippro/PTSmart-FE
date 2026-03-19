@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { loginAPI } from './authAPI';
 import './LoginPage.css';
 
 const LoginPage = () => {
@@ -8,20 +9,31 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate login - store user info in localStorage
-    const userData = {
-      name: 'Nguyễn Văn A',
-      email: email || 'user@ptsmart.com',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCTFrFL45XY5C9ruJlIFxQ7G4IcjDh5CmhsPAQNy3M4L-wllg-qmE7ilvN4On17UYEwFHO8a6t_ExAiSkpQ4bm9eBB44yPZHuOaKEtrbLWBD1gD3GTu1rh5ti4-fqJTSEnyTC820R1Z1hnpbWK9wP2l-5zVZxUzrnpzyZpLSCgNgFBvNiRS4AypAZ027FSr5jFNITGmFOUz6AGGp4aMmbwuajfYyZs1NFWUMb-XQdBlYfCMfae-ykIcGOzE_elyDsJ3xjMIb8ciAw',
-    };
-    localStorage.setItem('user', JSON.stringify(userData));
-    if (rememberMe) {
-      localStorage.setItem('rememberMe', 'true');
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await loginAPI(email, password);
+
+      // Store user info and token in localStorage
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('userToken', data.token);
+
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true');
+      }
+
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
     }
-    navigate('/');
   };
 
   return (
@@ -82,6 +94,13 @@ const LoginPage = () => {
 
           {/* Form */}
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">error</span>
+                {error}
+              </div>
+            )}
             {/* Email Field */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-500 px-1">
@@ -148,10 +167,11 @@ const LoginPage = () => {
 
             {/* Primary Action */}
             <button
-              className="w-full primary-gradient text-white font-bold py-4 rounded-full shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              className="w-full primary-gradient text-white font-bold py-4 rounded-full shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
               type="submit"
+              disabled={loading}
             >
-              Đăng nhập
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
 

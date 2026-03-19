@@ -1,9 +1,16 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { logoutAdmin } from '../../features/auth/authAPI';
 import './Sidebar.css';
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logoutAdmin();
+    navigate('/admin/login');
+  };
 
   const isActive = (path) => {
     if (path === '/admin') {
@@ -77,7 +84,10 @@ const Sidebar = () => {
               <p className="text-[10px] text-slate-500 truncate">admin@ptsmart.vn</p>
             </div>
           </div>
-          <button className="w-full text-[10px] font-bold py-1 px-2 border border-primary/20 rounded-lg text-primary hover:bg-primary hover:text-white transition-all">
+          <button 
+            onClick={handleLogout}
+            className="w-full text-[10px] font-bold py-1 px-2 border border-primary/20 rounded-lg text-primary hover:bg-primary hover:text-white transition-all"
+          >
             ĐĂNG XUẤT
           </button>
         </div>

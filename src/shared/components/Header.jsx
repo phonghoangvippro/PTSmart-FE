@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getCartCount } from '../../features/cart/cartAPI';
+import { logoutUser } from '../../features/auth/authAPI';
 import './Header.css';
 
 const Header = () => {
@@ -30,9 +31,8 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('rememberMe');
+  const handleLogout = async () => {
+    await logoutUser();
     setUser(null);
     setShowDropdown(false);
     navigate('/login');

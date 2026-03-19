@@ -1,4 +1,4 @@
-// Auth API service for admin
+// Auth API service for user
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
 /**
@@ -29,15 +29,15 @@ export const loginAPI = async (email, password) => {
 /**
  * Get the stored auth token
  */
-export const getAdminToken = () => {
-  return localStorage.getItem('adminToken');
+export const getUserToken = () => {
+  return localStorage.getItem('userToken');
 };
 
 /**
  * Create authenticated fetch headers
  */
 export const authHeaders = () => {
-  const token = getAdminToken();
+  const token = getUserToken();
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -49,7 +49,7 @@ export const authHeaders = () => {
  * Logout API call
  */
 export const logoutAPI = async () => {
-  const token = getAdminToken();
+  const token = getUserToken();
   if (!token) return;
 
   try {
@@ -69,9 +69,9 @@ export const logoutAPI = async () => {
 /**
  * Logout - call API and clear stored data
  */
-export const logoutAdmin = async () => {
+export const logoutUser = async () => {
   await logoutAPI();
-  localStorage.removeItem('admin');
-  localStorage.removeItem('adminToken');
-  localStorage.removeItem('adminRememberMe');
+  localStorage.removeItem('user');
+  localStorage.removeItem('userToken');
+  localStorage.removeItem('rememberMe');
 };

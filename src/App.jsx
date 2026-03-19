@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './shared/components/ProtectedRoute';
 import HomePage from './features/home/HomePage';
 import LoginPage from './features/auth/LoginPage';
 import ProductList from './features/product/ProductList';
@@ -24,23 +25,23 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/laptops" element={<ProductList />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/account/orders" element={<MyOrders />} />
-          <Route path="/account/profile" element={<Profile />} />
-          <Route path="/account/payment" element={<Payment />} />
-          <Route path="/account/promotions" element={<MyPromotions />} />
-          <Route path="/account/address" element={<Address />} />
-          <Route path="/account/favorites" element={<Favorites />} />
-          <Route path="/khuyen-mai" element={<PromotionsPage />} />
-          <Route path="/lien-he" element={<ContactPage />} />
-          <Route path="/flash-sale" element={<FlashSalePage />} />
-          <Route path="/tin-tuc" element={<NewsPage />} />
+          <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/laptops" element={<ProtectedRoute><ProductList /></ProtectedRoute>} />
+          <Route path="/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
+          <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+          <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+          <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+          <Route path="/account/orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
+          <Route path="/account/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/account/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+          <Route path="/account/promotions" element={<ProtectedRoute><MyPromotions /></ProtectedRoute>} />
+          <Route path="/account/address" element={<ProtectedRoute><Address /></ProtectedRoute>} />
+          <Route path="/account/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+          <Route path="/khuyen-mai" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
+          <Route path="/lien-he" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
+          <Route path="/flash-sale" element={<ProtectedRoute><FlashSalePage /></ProtectedRoute>} />
+          <Route path="/tin-tuc" element={<ProtectedRoute><NewsPage /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>
@@ -48,4 +49,5 @@ function App() {
 }
 
 export default App;
+
 
