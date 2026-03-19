@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loginAPI } from './authAPI';
 import './AdminLogin.css';
 
 const AdminLogin = () => {
@@ -8,20 +9,31 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate admin login - store admin info in localStorage
-    const adminData = {
-      name: 'Admin PTSmart',
-      email: email || 'admin@ptsmart.com',
-      role: 'admin',
-    };
-    localStorage.setItem('admin', JSON.stringify(adminData));
-    if (rememberMe) {
-      localStorage.setItem('adminRememberMe', 'true');
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await loginAPI(email, password);
+
+      // Store admin info and token in localStorage
+      localStorage.setItem('admin', JSON.stringify(data.user));
+      localStorage.setItem('adminToken', data.token);
+
+      if (rememberMe) {
+        localStorage.setItem('adminRememberMe', 'true');
+      }
+
+      navigate('/admin');
+    } catch (err) {
+      setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
     }
-    navigate('/admin');
   };
 
   return (
@@ -82,6 +94,13 @@ const AdminLogin = () => {
 
           {/* Form */}
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">error</span>
+                {error}
+              </div>
+            )}
             {/* Email Field */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-500 px-1">
@@ -148,10 +167,11 @@ const AdminLogin = () => {
 
             {/* Primary Action */}
             <button
-              className="w-full primary-gradient text-white font-bold py-4 rounded-full shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              className="w-full primary-gradient text-white font-bold py-4 rounded-full shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
               type="submit"
+              disabled={loading}
             >
-              Đăng nhập
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
 
