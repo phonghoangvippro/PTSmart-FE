@@ -13,6 +13,7 @@ const Settings = () => {
   const [supportEmail, setSupportEmail] = useState('');
   const [hotline, setHotline] = useState('');
   const [shippingFee, setShippingFee] = useState('');
+  const [workingHours, setWorkingHours] = useState('');
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -45,12 +46,13 @@ const Settings = () => {
     try {
       // Fetch Settings
       const settingsData = await getSettings();
-      // the api returns { site_name, support_email, hotline, default_shipping_fee, site_logo }
+      // the api returns { site_name, support_email, hotline, default_shipping_fee, site_logo, working_hours }
       const s = settingsData || {};
       setSiteName(s.site_name || '');
       setSupportEmail(s.support_email || '');
       setHotline(s.hotline || '');
       setShippingFee(s.default_shipping_fee || '');
+      setWorkingHours(s.working_hours || '');
       if (s.site_logo) setLogoPreview(`${IMG_BASE}${s.site_logo}`);
       
       // Fetch Banners
@@ -97,6 +99,7 @@ const Settings = () => {
       formData.append('support_email', supportEmail);
       formData.append('hotline', hotline);
       formData.append('default_shipping_fee', shippingFee);
+      formData.append('working_hours', workingHours);
       if (logoFile) {
         formData.append('site_logo', logoFile);
       }
@@ -300,6 +303,16 @@ const Settings = () => {
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VNĐ</span>
                       </div>
+                    </div>
+                    <div className="space-y-2 md:col-span-2 lg:col-span-1">
+                      <label className="text-sm font-semibold text-slate-700">Giờ làm việc</label>
+                      <input
+                        className="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm px-4 py-2.5"
+                        type="text"
+                        value={workingHours}
+                        onChange={(e) => setWorkingHours(e.target.value)}
+                        placeholder="08:00 - 21:00 (Hàng ngày)"
+                      />
                     </div>
                   </div>
                 </div>
