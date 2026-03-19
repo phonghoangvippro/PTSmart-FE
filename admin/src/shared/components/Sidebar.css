@@ -1,0 +1,9 @@
+/* Sidebar component styles */
+.admin-sidebar {
+  min-height: 100vh;
+}
+
+.active-nav {
+  background-color: #135bec;
+  color: white;
+}
