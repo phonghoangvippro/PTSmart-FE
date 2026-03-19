@@ -4,6 +4,7 @@ import Sidebar from '../../shared/components/Sidebar';
 import Header from '../../shared/components/Header';
 import { getProducts, createProduct, updateProduct, uploadProductImages } from './productAPI';
 import { getCategories } from '../categories/categoryAPI';
+import { getBrands } from '../brands/brandAPI';
 import './ProductEdit.css';
 
 const IMG_BASE = 'http://127.0.0.1:8000';
@@ -26,6 +27,7 @@ const ProductEdit = () => {
     specifications: [],
   });
   const [categories, setCategories] = useState([]);
+  const [brandsList, setBrandsList] = useState([]);
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
   const [imageFiles, setImageFiles] = useState([]);
@@ -42,7 +44,6 @@ const ProductEdit = () => {
       try {
         // Load categories
         const catRes = await getCategories();
-        // Flatten tree if needed
         const flatCats = Array.isArray(catRes) ? catRes : (catRes.data || []);
         const allCats = [];
         const flatten = (items, prefix = '') => {
@@ -55,6 +56,10 @@ const ProductEdit = () => {
         };
         flatten(flatCats);
         setCategories(allCats);
+
+        // Load brands
+        const brandsData = await getBrands();
+        setBrandsList(brandsData);
 
         // Load product for edit
         if (id) {
@@ -295,14 +300,17 @@ const ProductEdit = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold mb-2">Thương hiệu (Brand ID) *</label>
-                      <input
+                      <label className="block text-sm font-semibold mb-2">Thương hiệu *</label>
+                      <select
                         className="w-full rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:border-primary focus:ring-primary h-12"
-                        type="number"
                         value={product.brand_id}
                         onChange={(e) => setProduct({ ...product, brand_id: e.target.value })}
-                        placeholder="VD: 1"
-                      />
+                      >
+                        <option value="">Chọn thương hiệu</option>
+                        {brandsList.map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
