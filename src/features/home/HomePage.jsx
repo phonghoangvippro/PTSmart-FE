@@ -1,124 +1,333 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../shared/components/Header';
 import Footer from '../../shared/components/Footer';
+import { getHomeData } from './homeAPI';
 import './HomePage.css';
 
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
+const getImageUrl = (path) => {
+  if (!path) return 'https://placehold.co/400x400';
+  if (path.startsWith('http')) return path;
+  return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
+const formatCurrency = (amount) => {
+  if (!amount) return '0đ';
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+};
+
 const HomePage = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const homeData = await getHomeData();
+        setData(homeData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const { banners, categories, flash_sale, featured_products, new_products, best_sellers } = data || {};
+  
+  // Get hero banners
+  const heroBanners = banners?.filter(b => b.position === 'home_hero') || [];
+
+  // Auto-slide effect
+  useEffect(() => {
+    if (!heroBanners || heroBanners.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % heroBanners.length);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [heroBanners.length]);
+
+  if (loading) {
+    return (
+      <div className="homepage flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="homepage flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1 flex justify-center items-center">
+          <div className="text-red-500 font-bold p-8 text-center bg-red-50 rounded-xl">
+            Có lỗi xảy ra: {error}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const currentBanner = heroBanners[currentBannerIndex] || banners?.[0];
+
   return (
     <div className="homepage">
       <Header />
 
       <main className="max-w-[1280px] mx-auto px-4 md:px-10 py-6 space-y-12">
         {/* Hero Slider Section */}
+        {currentBanner && (
         <section className="relative h-[400px] w-full rounded-3xl overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-transparent z-10"></div>
-          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCJbOqFvUc5mIfiezLHo71OO3l8vlUcpTb3Dgi1274LnaD9yF4EzHEj8lW7fg2uGR82mRLkkZQ5kwYyYQA6RdPWEKe_kx0IzI7VPYeJ4Lu_KDckNle4BAHA22drcmzA2ZWLQ-xJ9WZpHdBF2sdCo2751C7m3IPzU307A0NOnY60Z95uCHWUZsm0Xkbr8jv1lDGFqCTIZz07Gyudgb0eXD0LVjJ5R5xZzFlScMi33636ru00btdbEPfbV8lvu6awe4BLQFFE3m-W3Q')" }}></div>
-          <div className="relative z-20 h-full flex flex-col justify-center px-12 max-w-2xl text-white space-y-4">
-            <span className="bg-accent-pink/20 text-accent-pink px-4 py-1 rounded-full text-sm font-bold w-fit border border-accent-pink/30">SIÊU TIỆC CÔNG NGHỆ</span>
-            <h2 className="text-5xl font-extrabold leading-tight">Laptop Gaming <br/>Thế Hệ Mới</h2>
-            <p className="text-lg text-white/80">Giảm giá lên đến 5,000,000đ khi thanh toán qua thẻ tín dụng. Hỗ trợ trả góp 0% lãi suất.</p>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-transparent z-10 transition-opacity duration-500"></div>
+          {heroBanners.map((banner, index) => (
+            <div 
+              key={banner.id || index}
+              className={`absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out ${
+                index === currentBannerIndex ? 'opacity-100 z-0 scale-100 group-hover:scale-105' : 'opacity-0 -z-10 scale-110'
+              }`}
+              style={{ backgroundImage: `url('${getImageUrl(banner.image)}')` }}
+            ></div>
+          ))}
+          
+          <div className="relative z-20 h-full flex flex-col justify-center px-12 max-w-2xl text-white space-y-4 transition-all duration-300">
+            <span className="bg-accent-pink/20 text-accent-pink px-4 py-1 rounded-full text-sm font-bold w-fit border border-accent-pink/30 inline-block">
+              {currentBanner.subtitle || 'SIÊU TIỆC CÔNG NGHỆ'}
+            </span>
+            <h2 className="text-5xl font-extrabold leading-tight">{currentBanner.title}</h2>
             <div className="flex gap-4 pt-4">
-              <button className="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">Mua ngay</button>
-              <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-8 py-3 rounded-xl font-bold transition-all border border-white/30">Xem chi tiết</button>
+              {currentBanner.link ? (
+                <Link to={currentBanner.link} className="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">
+                  Xem ngay
+                </Link>
+              ) : (
+                <button className="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">Mua ngay</button>
+              )}
             </div>
           </div>
+          
           {/* Slider Dots */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-            <div className="h-2 w-8 bg-white rounded-full"></div>
-            <div className="h-2 w-2 bg-white/40 rounded-full"></div>
-            <div className="h-2 w-2 bg-white/40 rounded-full"></div>
-          </div>
+          {heroBanners.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+              {heroBanners.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentBannerIndex(index)}
+                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                    index === currentBannerIndex ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                ></button>
+              ))}
+            </div>
+          )}
         </section>
+        )}
 
         {/* Categories Section */}
+        {categories && categories.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">grid_view</span>
               Danh mục nổi bật
             </h2>
-            <Link className="text-primary font-semibold flex items-center hover:underline text-sm" to="/laptops">
+            <Link className="text-primary font-semibold flex items-center hover:underline text-sm" to="/categories">
               Xem tất cả <span className="material-symbols-outlined text-base">chevron_right</span>
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { icon: 'smartphone', name: 'Điện thoại', count: '542 sản phẩm' },
-              { icon: 'laptop_mac', name: 'Laptop', count: '218 sản phẩm' },
-              { icon: 'tablet_android', name: 'Tablet', count: '105 sản phẩm' },
-              { icon: 'headphones', name: 'Phụ kiện', count: '1,204 sản phẩm' }
-            ].map((category, index) => (
-              <Link key={index} to={category.name === 'Laptop' ? '/laptops' : '#'} className="flex flex-col items-center p-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 transition-all group cursor-pointer">
-                <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 mb-4">
-                  <span className="material-symbols-outlined text-4xl">{category.icon}</span>
+          <div className="grid grid-cols-2 lg:grid-cols-7 md:grid-cols-4 gap-4">
+            {categories.slice(0, 7).map((category) => (
+              <Link key={category.id} to={`/category/${category.slug}`} className="flex flex-col items-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 transition-all group cursor-pointer text-center">
+                <div className="size-16 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 mb-3">
+                  <span className="material-symbols-outlined text-3xl">{category.icon || 'devices'}</span>
                 </div>
-                <span className="font-bold text-lg">{category.name}</span>
-                <span className="text-xs text-gray-400 mt-1">{category.count}</span>
+                <span className="font-bold text-sm line-clamp-2">{category.name}</span>
               </Link>
             ))}
           </div>
         </section>
+        )}
 
         {/* Flash Sale Section */}
+        {flash_sale && flash_sale.items?.length > 0 && (
         <section className="bg-primary/5 dark:bg-primary/10 rounded-[40px] p-8 md:p-10 border border-primary/10">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
             <div className="flex items-center gap-6">
               <h2 className="text-3xl font-extrabold flex items-center gap-3">
                 <span className="material-symbols-outlined text-4xl text-accent-pink fill-1">bolt</span>
-                FLASH SALE
+                {flash_sale.title || 'FLASH SALE'}
               </h2>
-              <div className="flex items-center gap-3">
-                <span className="text-gray-500 font-medium text-sm">Kết thúc sau:</span>
-                <div className="flex gap-2">
-                  <div className="size-10 bg-primary text-white rounded-lg flex items-center justify-center font-bold">02</div>
-                  <span className="font-bold text-primary">:</span>
-                  <div className="size-10 bg-primary text-white rounded-lg flex items-center justify-center font-bold">45</div>
-                  <span className="font-bold text-primary">:</span>
-                  <div className="size-10 bg-primary text-white rounded-lg flex items-center justify-center font-bold">12</div>
-                </div>
-              </div>
             </div>
-            <button className="text-primary font-bold hover:bg-primary/10 px-6 py-2 rounded-xl transition-colors">Xem tất cả Flash Sale</button>
+            <button className="text-primary font-bold hover:bg-primary/10 px-6 py-2 rounded-xl transition-colors">Xem tất cả</button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { discount: '-30%', brand: 'Apple', name: 'iPhone 14 Pro Max 256GB - VN/A', price: '24.590.000đ', oldPrice: '34.990.000đ', progress: 'w-3/4', sold: 'Đã bán 24/30', status: 'Vừa cháy hàng!', statusColor: 'text-accent-pink', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA7RbGNhnWaZDjHE1ZLOYl6sfVcsxg9LrOXGIoS10vOI72AVmkEQfRWvgFY6_bZpunrFKRnBY4mCtSMCisBUEGtaF8RO7wnyM_stzWnGQI7L7GTNno8E5SzpmuNFK8RhUgeFASkXoaHcfsfp4G1qUTnGRfwfKFfsN5itkDuycH08P-r9V0_GCxgEiHpzknLAENAtDn1vND_Co7lg655Ug97muR2y5PXm8Jh7klU-zmcLgqsubprRg8cc_FXaRxJxxd9GRqScoPUmQ' },
-              { discount: '-15%', brand: 'Apple', name: 'MacBook Air M2 8GB/256GB', price: '26.990.000đ', oldPrice: '31.990.000đ', progress: 'w-1/4', sold: 'Đã bán 5/20', status: null, statusColor: null, image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBRMGeZhmfwYLCeQ2AWDEm37ywghQPHKmyx4o9XxLd9qO5rWevhoWSAKI7T_NNCvVUMgmYXFFusIU3oH8ner4hnuqBcTZAY-Q3v7hj5QqH_3L0YwGlrJ6g89OaHR1oawF-DVvjr62pgwsRO-2MSQpQGMNMs_s_Wy4ph6xVFqVebkYmmu9Lf89S5qp7EsDAuhmR2UKG3VPjVQoxG8DX3-jOQS8nUg511h-ksKcNhBqkokoebPqOnTACNCbHqhxbISgtLsia-ojGopg' },
-              { discount: '-25%', brand: 'Apple', name: 'iPad Pro M2 11 inch WiFi 128GB', price: '21.490.000đ', oldPrice: '28.990.000đ', progress: 'w-1/2', sold: 'Đã bán 15/30', status: null, statusColor: null, image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC6NmpUqq--_nIzbEq6nFvFe8F89E9b6BCFx72S2FxBCN-O5GJB7OX9AyKhovv9oSXyAdAv-4fIl3E7-UWuKFpL2AETx7rSJbtGe9XUsEYedo2TknUkcBsG03yDrjzJztD3KhnjoFkyJ6ezNY4xp7JIsBAJZ4FTRYWLyYhOQkwB-s67panqtNm1tiEN0SiAsPrE922gwLHOt5eF9y3YHq_mhTCnnSe-RQ-a9BV9mWAmdf7ikY1MGnkPxwJJ219KWkIaf9X093GnGA' },
-              { discount: '-50%', brand: 'Sony', name: 'Sony WH-1000XM5 Noise Canceling', price: '6.490.000đ', oldPrice: '12.990.000đ', progress: 'w-full', sold: 'Đã bán 50/50', status: 'Hết hàng', statusColor: 'text-red-500', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB7O1hy_LrcTw6uJL9zcXAKK8AvymzEQLxoG7pkRenhoVzC118MnVLD4JnPIcuXNNblyuafuBBs0rypt2KxB0-tb1EIRSWKqzLzEWtZrPOwotsxS-FgMlLYgIvtKzeszmfmYruX45ZAII1PM4oL4VuBqNYHnbFS_cutgPhWj-HDqHcyVRC5ILhKjlhNCdTju1E6CvsCtRsgYZSb2OKJwDLiYSeh7kLDBz1_l52Tt4GXd0m9CBtdtVJWs8RcOXkUD-gqQP4rLX8isQ' }
-            ].map((product, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-3xl p-5 border border-transparent hover:border-primary/20 hover:shadow-2xl transition-all relative group overflow-hidden">
-                <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">{product.discount}</div>
-                <button className="absolute top-4 right-4 z-10 size-10 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-accent-pink transition-colors">
-                  <span className="material-symbols-outlined text-xl">favorite</span>
-                </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {flash_sale.items.map((item) => {
+              const product = item.product;
+              if (!product) return null;
+              
+              const discountPercentage = Math.round((1 - item.flash_price / product.price) * 100);
+              const progressPercentage = item.quantity > 0 ? Math.round((item.sold / item.quantity) * 100) : 0;
+              const isSoldOut = item.sold >= item.quantity;
+
+              return (
+              <Link to={`/product/${product.slug}`} key={item.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-transparent hover:border-primary/20 hover:shadow-2xl transition-all relative group overflow-hidden">
+                {discountPercentage > 0 && (
+                  <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
+                )}
                 <div className="aspect-square w-full mb-4 bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden">
-                  <img alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src={product.image} />
+                  <img alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src={getImageUrl(product.thumbnail)} />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs text-gray-400 font-medium">{product.brand}</p>
-                  <h3 className="font-bold text-lg line-clamp-2">{product.name}</h3>
-                  <div className="flex items-end gap-3">
-                    <span className="text-xl font-bold text-primary">{product.price}</span>
-                    <span className="text-sm text-gray-400 line-through pb-0.5">{product.oldPrice}</span>
+                  {product.brand && <p className="text-xs text-gray-400 font-medium">{product.brand.name || 'Unknown'}</p>}
+                  <h3 className="font-bold text-base md:text-lg line-clamp-2 h-[56px] leading-tight">{product.name}</h3>
+                  <div className="flex flex-col gap-1 items-start">
+                    <span className="text-xl font-bold text-primary">{formatCurrency(item.flash_price)}</span>
+                    <span className="text-sm text-gray-400 line-through pb-0.5">{formatCurrency(product.price)}</span>
                   </div>
                   <div className="pt-4">
                     <div className="w-full bg-gray-200 dark:bg-gray-700 h-2.5 rounded-full relative overflow-hidden">
-                      <div className={`absolute inset-0 bg-gradient-to-r from-accent-pink to-orange-400 ${product.progress} rounded-full`}></div>
+                      <div className={`absolute inset-0 bg-gradient-to-r from-accent-pink to-orange-400 rounded-full`} style={{ width: `${progressPercentage}%` }}></div>
                     </div>
                     <div className="flex justify-between mt-2">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{product.sold}</span>
-                      {product.status && (
-                        <span className={`text-[10px] font-bold ${product.statusColor} uppercase tracking-wider`}>{product.status}</span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        Đã bán {item.sold}/{item.quantity}
+                      </span>
+                      {isSoldOut && (
+                        <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider">Hết hàng</span>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              </Link>
+            )})}
           </div>
         </section>
+        )}
+
+        {/* Featured Products */}
+        {featured_products && featured_products.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">star</span>
+              Sản phẩm nổi bật
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {featured_products.slice(0, 10).map((product) => {
+              const discountPercentage = product.sale_price ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
+              return (
+              <Link to={`/product/${product.slug}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
+                {discountPercentage > 0 && (
+                  <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
+                )}
+                <div className="aspect-square w-full mb-4 bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden">
+                  <img alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={getImageUrl(product.thumbnail)} />
+                </div>
+                <div className="space-y-2">
+                  {product.brand && <p className="text-xs text-gray-400 font-medium">{product.brand.name}</p>}
+                  <h3 className="font-bold text-base line-clamp-2 h-[48px] leading-tight">{product.name}</h3>
+                  <div className="flex flex-col gap-1 items-start">
+                    <span className="text-lg font-bold text-primary">{formatCurrency(product.sale_price || product.price)}</span>
+                    {product.sale_price && (
+                      <span className="text-sm text-gray-400 line-through pb-0.5">{formatCurrency(product.price)}</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            )})}
+          </div>
+        </section>
+        )}
+
+        {/* New Products */}
+        {new_products && new_products.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">new_releases</span>
+              Sản phẩm mới nhất
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {new_products.slice(0, 5).map((product) => {
+              const discountPercentage = product.sale_price ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
+              return (
+              <Link to={`/product/${product.slug}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
+                <div className="absolute top-4 right-4 z-10 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">New</div>
+                {discountPercentage > 0 && (
+                  <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
+                )}
+                <div className="aspect-square w-full mb-4 bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden">
+                  <img alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={getImageUrl(product.thumbnail)} />
+                </div>
+                <div className="space-y-2">
+                  {product.brand && <p className="text-xs text-gray-400 font-medium">{product.brand.name}</p>}
+                  <h3 className="font-bold text-base line-clamp-2 h-[48px] leading-tight">{product.name}</h3>
+                  <div className="flex flex-col gap-1 items-start">
+                    <span className="text-lg font-bold text-primary">{formatCurrency(product.sale_price || product.price)}</span>
+                    {product.sale_price && (
+                      <span className="text-sm text-gray-400 line-through pb-0.5">{formatCurrency(product.price)}</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            )})}
+          </div>
+        </section>
+        )}
+
+        {/* Best Sellers */}
+        {best_sellers && best_sellers.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">trending_up</span>
+              Bán chạy nhất
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {best_sellers.slice(0, 5).map((product) => {
+              const discountPercentage = product.sale_price ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
+              return (
+              <Link to={`/product/${product.slug}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
+                {discountPercentage > 0 && (
+                  <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
+                )}
+                <div className="aspect-square w-full mb-4 bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden">
+                  <img alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={getImageUrl(product.thumbnail)} />
+                </div>
+                <div className="space-y-2">
+                  {product.brand && <p className="text-xs text-gray-400 font-medium">{product.brand.name}</p>}
+                  <h3 className="font-bold text-base line-clamp-2 h-[48px] leading-tight">{product.name}</h3>
+                  <div className="flex flex-col gap-1 items-start">
+                    <span className="text-lg font-bold text-primary">{formatCurrency(product.sale_price || product.price)}</span>
+                    {product.sale_price && (
+                      <span className="text-sm text-gray-400 line-through pb-0.5">{formatCurrency(product.price)}</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Đã bán {product.sold_count || 0}
+                  </div>
+                </div>
+              </Link>
+            )})}
+          </div>
+        </section>
+        )}
 
         {/* Newsletter & Promotions */}
         <section className="grid md:grid-cols-2 gap-8">
@@ -150,3 +359,4 @@ const HomePage = () => {
 };
 
 export default HomePage;
+
