@@ -1,14 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../../shared/components/Header';
 import Footer from '../../shared/components/Footer';
+import { getWishlist, removeFromWishlist } from './wishlistAPI';
+
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
+const getImageUrl = (path) => {
+  if (!path) return 'https://placehold.co/160x160?text=No+Image';
+  if (path.startsWith('http')) return path;
+  return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + '₫';
 
 const Favorites = () => {
-  const products = [
-    { category: 'Điện thoại', name: 'iPhone 15 Pro Max 256GB', price: '29.990.000₫', oldPrice: '34.990.000₫', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAby69XGp3QgXckfPw2OsjFdSkQB0J1xWuZlU15KJ-q-16t_-9Olxn2XrTBZzJR2Yrh7cOLLRj4uc2XgYzTmqyH4wHRayIjWmSKwUWjM53M9eKHdXOHvZHUn5kxspzhXBmfR8Gl7SHS7ZuFfFBm8NXn_8VYLtPlOxdDeHO6XkVxPjb3i-5EuYKuFg-lA1hHAsiMWz9E5RYtmlr8sPWEVxnJWkKvMTu9w6NXtvsFTj9iO4JgOOsk_AMKXKlFYEY4zmt1kcn1VvMkQg' },
-    { category: 'Laptop', name: 'MacBook Air M2 13"', price: '24.590.000₫', oldPrice: '27.990.000₫', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDAeMV78HsVHc-EKQm5kCdCu9s0rMbyIwABfI7665dpit6O-UylTOsjw9RTdTb1YKnqCG6NS29xldsTHrEpkS06T8yTbG7gimCk1ggwpTynZmSNpcGvhn6yqfx_xuV1Rtgq5fMZUIvPcGf8-RfZ_F9WJ2iSmjHrsmZu4dS6lbcuaztS0rnjx57DQn1efrEivkasXrP692SA4TDz4oPWK4KHwlwC-N0iN40c9Z12T1VUYkxVm1RzZPf1A9vnOcuwU6LYgIRTEoVu7g' },
-    { category: 'Phụ kiện', name: 'Sony WH-1000XM5', price: '7.490.000₫', oldPrice: '8.990.000₫', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBcDx2-fCL5DiPVovjVQAKCvXUA_tFPjLMZxK61Hl6DBTIhLGer2e6tPFGROfaHkMucHPr4ro-bPRwnCguEVqNR_VdEyB3tya2ErbpS3J8JstRj8RJNstzk7oNmKkdgNn8KF2Rs5tcz5lCC9dvhSdPGGL5UawR1mTReJ6mtgP4CwUaFwsMuIi904QYqK7_SrpGmVuJ7lSTmsBXqEzFs9S5C8j0PyilcCf5Y_bJNlK7XJ8V1SjpagswWQwFj9n8GYuBf3n5e8H4Xzg' },
-    { category: 'Laptop', name: 'iPad Pro M2 11" 128GB', price: '19.290.000₫', oldPrice: '22.990.000₫', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA4tCfET0Yi5pLtAJwq2ik8tjZC7Vru0IDCU3T1GaCFpBCrSILwWJ39piwFR7A2C0GVrGCBlenS6p2Jm3HF7vIaKp9d9CLNHtM1dDG540F55X37pR1N8-Y6U44_03QO6cHIbYAPqGrF4tH1CdhgcR6RBsZdSKG7g0IHWZ64KvDlU9vav-BFJLGT3enoaxC0YnzAARISM6yDmIZHqGsDnpjYVeBejzHiKBhutLUqxLetDOzz_4WCXqQ7MbdaKr6gEUEU5tpmjxpoIg' },
-  ];
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [removingId, setRemovingId] = useState(null);
+
+  const fetchWishlist = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getWishlist();
+      setItems(res.data || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWishlist();
+  }, []);
+
+  const handleRemove = async (productId) => {
+    try {
+      setRemovingId(productId);
+      await removeFromWishlist(productId);
+      setItems((prev) => prev.filter((item) => item.product_id !== productId));
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -18,55 +57,118 @@ const Favorites = () => {
         {/* Page Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Sản phẩm đã thích <span className="text-primary font-medium text-lg ml-1">({products.length})</span>
+            Sản phẩm đã thích <span className="text-primary font-medium text-lg ml-1">({items.length})</span>
           </h2>
-          <div className="flex gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-lg text-sm font-medium shadow-sm border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
-              <span className="material-symbols-outlined text-lg">filter_list</span>
-              <span>Lọc</span>
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-lg text-sm font-medium shadow-sm border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
-              <span className="material-symbols-outlined text-lg">sort</span>
-              <span>Sắp xếp</span>
-            </button>
-          </div>
+          <Link to="/account" className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-lg text-sm font-medium shadow-sm border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <span>Tài khoản</span>
+          </Link>
         </div>
 
+        {/* Loading */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="text-red-500 font-bold p-8 text-center bg-red-50 dark:bg-red-900/20 rounded-xl">
+            Có lỗi xảy ra: {error}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && items.length === 0 && (
+          <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+            <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4">favorite</span>
+            <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Chưa có sản phẩm yêu thích</h3>
+            <p className="text-slate-500 mb-6">Hãy khám phá và thêm sản phẩm vào danh sách yêu thích của bạn!</p>
+            <Link to="/san-pham" className="inline-flex items-center gap-2 bg-primary text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+              <span className="material-symbols-outlined">shopping_bag</span>
+              Khám phá ngay
+            </Link>
+          </div>
+        )}
+
         {/* Product Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {products.map((product, index) => (
-            <div key={index} className="group relative flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-transparent hover:border-primary/20 transition-all">
-              <div className="w-full sm:w-40 h-40 rounded-lg bg-slate-50 dark:bg-slate-800 overflow-hidden shrink-0">
+        {!loading && !error && items.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {items.map((item) => {
+              const product = item.product;
+              if (!product) return null;
+
+              const hasDiscount = product.sale_price && Number(product.sale_price) < Number(product.price);
+              const displayPrice = hasDiscount ? product.sale_price : product.price;
+              const isRemoving = removingId === item.product_id;
+
+              return (
                 <div
-                  className="w-full h-full bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
-                  style={{ backgroundImage: `url('${product.image}')` }}
-                ></div>
-              </div>
-              <div className="flex flex-col justify-between flex-1">
-                <div>
-                  <div className="flex justify-between items-start">
-                    <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">{product.category}</span>
-                    <button className="text-pink-400 hover:scale-110 transition-transform">
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-                    </button>
+                  key={item.id}
+                  className={`group relative flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-transparent hover:border-primary/20 transition-all ${
+                    isRemoving ? 'opacity-50 pointer-events-none' : ''
+                  }`}
+                >
+                  <Link to={`/product/${product.slug}`} className="w-full sm:w-40 h-40 rounded-lg bg-slate-50 dark:bg-slate-800 overflow-hidden shrink-0 block">
+                    <img
+                      src={getImageUrl(product.thumbnail)}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </Link>
+                  <div className="flex flex-col justify-between flex-1">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        {product.rating_avg && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-500 text-xs font-bold">
+                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            {product.rating_avg}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleRemove(item.product_id)}
+                          disabled={isRemoving}
+                          className="text-pink-400 hover:scale-110 transition-transform"
+                          title="Bỏ yêu thích"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+                        </button>
+                      </div>
+                      <Link to={`/product/${product.slug}`}>
+                        <h3 className="text-slate-900 dark:text-white font-bold text-lg mt-1 line-clamp-1 hover:text-primary transition-colors">{product.name}</h3>
+                      </Link>
+                      <p className="text-primary text-xl font-bold mt-1">{formatPrice(displayPrice)}</p>
+                      {hasDiscount && (
+                        <p className="text-slate-400 text-xs line-through">{formatPrice(product.price)}</p>
+                      )}
+                      <p className="text-slate-400 text-xs mt-1">
+                        Đã thích {new Date(item.created_at).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Link
+                        to={`/product/${product.slug}`}
+                        className="flex-1 bg-primary text-white text-xs font-bold py-2.5 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">visibility</span>
+                        Xem sản phẩm
+                      </Link>
+                      <button
+                        onClick={() => handleRemove(item.product_id)}
+                        disabled={isRemoving}
+                        className="w-10 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-50"
+                        title="Xóa khỏi yêu thích"
+                      >
+                        <span className="material-symbols-outlined text-lg">delete</span>
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="text-slate-900 dark:text-white font-bold text-lg mt-1 line-clamp-1">{product.name}</h3>
-                  <p className="text-primary text-xl font-bold mt-1">{product.price}</p>
-                  <p className="text-slate-400 text-xs line-through">{product.oldPrice}</p>
                 </div>
-                <div className="flex gap-2 mt-4">
-                  <button className="flex-1 bg-primary text-white text-xs font-bold py-2.5 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
-                    Thêm vào giỏ
-                  </button>
-                  <button className="w-10 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all">
-                    <span className="material-symbols-outlined text-lg">delete</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Promo Banner */}
         <div className="mt-12 bg-gradient-to-r from-primary to-pink-400 rounded-2xl p-8 text-white relative overflow-hidden">
