@@ -7,7 +7,7 @@ import { getCategories } from '../categories/categoryAPI';
 import { getBrands } from '../brands/brandAPI';
 import './ProductEdit.css';
 
-const IMG_BASE = 'http://127.0.0.1:8000';
+const IMG_BASE = 'http://192.168.0.243:8000';
 
 const ProductEdit = () => {
   const { id } = useParams();

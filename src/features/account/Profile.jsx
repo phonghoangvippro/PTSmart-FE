@@ -3,7 +3,7 @@ import Header from '../../shared/components/Header';
 import Footer from '../../shared/components/Footer';
 import { getProfile, updateProfile, uploadAvatar, changePassword } from './profileAPI';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = 'http://192.168.0.243:8000';
 
 const getImageUrl = (path) => {
   if (!path) return null;

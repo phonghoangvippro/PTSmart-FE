@@ -3,7 +3,7 @@ import Sidebar from '../../shared/components/Sidebar';
 import Header from '../../shared/components/Header';
 import { getPromotions, createPromotion, updatePromotion, deletePromotion } from './promotionAPI';
 
-const IMG_BASE = 'http://127.0.0.1:8000';
+const IMG_BASE = 'http://192.168.0.243:8000';
 
 const statusCfg = {
   1: { label: 'Đang diễn ra', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },

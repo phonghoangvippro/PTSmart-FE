@@ -3,7 +3,7 @@ import Sidebar from '../../shared/components/Sidebar';
 import Header from '../../shared/components/Header';
 import { getBrands, createBrand, updateBrand, deleteBrand } from './brandAPI';
 
-const IMG_BASE = 'http://127.0.0.1:8000';
+const IMG_BASE = 'http://192.168.0.243:8000';
 
 const BrandList = () => {
   const [brands, setBrands] = useState([]);

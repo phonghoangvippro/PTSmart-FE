@@ -6,7 +6,7 @@ import { getCart, updateCartItem, removeCartItem, clearCart } from './cartAPI';
 import { getMyCoupons, applyCoupon } from '../checkout/couponAPI';
 import './Cart.css';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = 'http://192.168.0.243:8000';
 
 const getImageUrl = (path) => {
   if (!path) return 'https://placehold.co/80x80?text=No+Image';

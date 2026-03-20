@@ -5,7 +5,7 @@ import { getBanners, createBanner, updateBanner, deleteBanner } from './bannerAP
 import { getSettings, updateSettings } from './settingsAPI';
 import './Settings.css';
 
-const IMG_BASE = 'http://127.0.0.1:8000';
+const IMG_BASE = 'http://192.168.0.243:8000';
 
 const Settings = () => {
   // --------- SETTINGS STATE ---------

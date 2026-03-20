@@ -7,7 +7,7 @@ import { fetchProducts } from './productAPI';
 import { addCartItem } from '../cart/cartAPI';
 import './ProductList.css';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = 'http://192.168.0.243:8000';
 
 const getImageUrl = (path) => {
   if (!path) return 'https://placehold.co/300x300?text=No+Image';

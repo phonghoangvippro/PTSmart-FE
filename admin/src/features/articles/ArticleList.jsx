@@ -3,7 +3,7 @@ import Sidebar from '../../shared/components/Sidebar';
 import Header from '../../shared/components/Header';
 import { getArticles, createArticle, updateArticle, deleteArticle } from './articleAPI';
 
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = 'http://192.168.0.243:8000';
 const catLabels = { 'huong-dan': 'Hướng dẫn', 'review': 'Review', 'so-sanh': 'So sánh', 'tu-van': 'Tư vấn', 'tin-tuc': 'Tin tức', 'kien-thuc': 'Kiến thức' };
 const catColors = { 'huong-dan': 'bg-emerald-50 text-emerald-700', 'review': 'bg-blue-50 text-blue-700', 'so-sanh': 'bg-purple-50 text-purple-700', 'tu-van': 'bg-amber-50 text-amber-700', 'tin-tuc': 'bg-pink-50 text-pink-700', 'kien-thuc': 'bg-teal-50 text-teal-700' };
 

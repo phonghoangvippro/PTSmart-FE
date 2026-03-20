@@ -10,7 +10,7 @@ const formatCurrency = (value) => {
   return new Intl.NumberFormat('vi-VN').format(Number(value)) + 'đ';
 };
 
-const IMG_BASE = 'http://127.0.0.1:8000';
+const IMG_BASE = 'http://192.168.0.243:8000';
 
 const ProductList = () => {
   const [searchQuery, setSearchQuery] = useState('');
