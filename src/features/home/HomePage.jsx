@@ -145,13 +145,13 @@ const HomePage = () => {
               <span className="material-symbols-outlined text-primary">grid_view</span>
               Danh mục nổi bật
             </h2>
-            <Link className="text-primary font-semibold flex items-center hover:underline text-sm" to="/categories">
+            {/* <Link className="text-primary font-semibold flex items-center hover:underline text-sm" to="/categories">
               Xem tất cả <span className="material-symbols-outlined text-base">chevron_right</span>
-            </Link>
+            </Link> */}
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-7 md:grid-cols-4 gap-4">
             {categories.slice(0, 7).map((category) => (
-              <Link key={category.id} to={`/category/${category.slug}`} className="flex flex-col items-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 transition-all group cursor-pointer text-center">
+              <Link key={category.id} to={`/san-pham?category=${category.slug}`} className="flex flex-col items-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 transition-all group cursor-pointer text-center">
                 <div className="size-16 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 mb-3">
                   <span className="material-symbols-outlined text-3xl">{category.icon || 'devices'}</span>
                 </div>
