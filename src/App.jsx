@@ -18,6 +18,7 @@ import PromotionsPage from './features/promotions/PromotionsPage';
 import ContactPage from './features/contact/ContactPage';
 import FlashSalePage from './features/flashsale/FlashSalePage';
 import NewsPage from './features/news/NewsPage';
+import ArticleDetailPage from './features/news/ArticleDetailPage';
 import './App.css';
 
 function App() {
@@ -41,7 +42,8 @@ function App() {
           <Route path="/khuyen-mai" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
           <Route path="/lien-he" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
           <Route path="/flash-sale" element={<FlashSalePage />} />
-          <Route path="/tin-tuc" element={<ProtectedRoute><NewsPage /></ProtectedRoute>} />
+          <Route path="/tin-tuc" element={<NewsPage />} />
+          <Route path="/tin-tuc/:slug" element={<ArticleDetailPage />} />
         </Routes>
       </div>
     </Router>
