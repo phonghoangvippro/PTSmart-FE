@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { getCartCount } from '../../features/cart/cartAPI';
+import { getCart } from '../../features/cart/cartAPI';
 import { logoutUser } from '../../features/auth/authAPI';
 import { searchAutocomplete } from '../../features/product/productAPI';
 import './Header.css';
@@ -16,9 +16,9 @@ const getImageUrl = (path) => {
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + '₫';
 
 const Header = () => {
-  const cartCount = getCartCount();
   const location = useLocation();
   const navigate = useNavigate();
+  const [cartCount, setCartCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [user, setUser] = useState(null);
   const dropdownRef = useRef(null);
@@ -36,8 +36,34 @@ const Header = () => {
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
+    } else {
+      setUser(null);
     }
   }, [location]);
+
+  // Fetch cart count
+  const fetchCartCount = useCallback(async () => {
+    if (!localStorage.getItem('userToken')) {
+      setCartCount(0);
+      return;
+    }
+    try {
+      const cartRes = await getCart();
+      const items = cartRes?.data?.items || [];
+      const count = items.reduce((total, item) => total + item.quantity, 0);
+      setCartCount(count);
+    } catch {
+      setCartCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCartCount();
+    window.addEventListener('cartUpdated', fetchCartCount);
+    return () => {
+      window.removeEventListener('cartUpdated', fetchCartCount);
+    };
+  }, [fetchCartCount, user]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

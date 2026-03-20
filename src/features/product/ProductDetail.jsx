@@ -79,6 +79,17 @@ const ProductDetail = () => {
     }
   };
 
+  const handleBuyNow = async () => {
+    try {
+      setAddingToCart(true);
+      await addCartItem(product.id, quantity, null);
+      navigate('/checkout');
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+      setAddingToCart(false);
+    }
+  };
+
   const renderStars = (rating) => {
     const r = Number(rating) || 0;
     const fullStars = Math.floor(r);
@@ -257,8 +268,8 @@ const ProductDetail = () => {
                   {addingToCart ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
                 </button>
                 <button
-                  onClick={() => navigate('/checkout', { state: { productId: product.id, quantity } })}
-                  disabled={product.stock <= 0}
+                  onClick={handleBuyNow}
+                  disabled={addingToCart || product.stock <= 0}
                   className="flex items-center justify-center gap-2 py-4 rounded-xl bg-accent-pink text-white font-bold hover:opacity-90 transition-opacity shadow-lg shadow-accent-pink/20 disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined">bolt</span>

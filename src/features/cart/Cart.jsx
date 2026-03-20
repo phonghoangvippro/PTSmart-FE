@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Header from '../../shared/components/Header';
 import Footer from '../../shared/components/Footer';
 import { getCart, updateCartItem, removeCartItem, clearCart } from './cartAPI';
+import { getMyCoupons, applyCoupon } from '../checkout/couponAPI';
 import './Cart.css';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -21,6 +22,13 @@ const Cart = () => {
   const [error, setError] = useState(null);
   const [promoCode, setPromoCode] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
+
+  // Coupons
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState(null);
+  const [coupons, setCoupons] = useState([]);
+  const [showCoupons, setShowCoupons] = useState(false);
 
   const fetchCart = async () => {
     try {
@@ -78,8 +86,42 @@ const Cart = () => {
     }
   };
 
-  const handleApplyPromo = () => {
-    alert('Mã giảm giá đã được áp dụng!');
+  const handleFetchCoupons = async () => {
+    setShowCoupons(true);
+    if (coupons.length > 0) return;
+    try {
+      const res = await getMyCoupons();
+      setCoupons(res.data || []);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleApplyPromo = async (code) => {
+    // This is passed code or uses promoCode state
+    const codeToApply = typeof code === 'string' ? code : promoCode;
+    if (!codeToApply.trim()) return;
+    
+    try {
+      setApplyingCoupon(true);
+      setCouponError(null);
+      
+      const res = await applyCoupon(codeToApply, calculateSubtotal());
+      setDiscountAmount(res.data?.discount || 0);
+      setPromoCode(codeToApply);
+      setShowCoupons(false);
+    } catch (err) {
+      setCouponError(err.message);
+      setDiscountAmount(0);
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setPromoCode('');
+    setDiscountAmount(0);
+    setCouponError(null);
   };
 
   const getItemPrice = (item) => {
@@ -92,9 +134,9 @@ const Cart = () => {
     return cartItems.reduce((total, item) => total + getItemPrice(item) * item.quantity, 0);
   };
 
-  const calculateDiscount = () => 0;
+  const calculateDiscount = () => discountAmount;
 
-  const calculateTotal = () => calculateSubtotal() - calculateDiscount();
+  const calculateTotal = () => Math.max(0, calculateSubtotal() - calculateDiscount());
 
   // Loading
   if (loading) {
@@ -272,23 +314,79 @@ const Cart = () => {
               <h3 className="text-xl font-bold mb-6">Tóm tắt đơn hàng</h3>
 
               {/* Promo Code */}
-              <div className="mb-6">
+              <div className="mb-6 relative">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mã giảm giá</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 relative z-10">
                   <input
                     className="flex-grow text-sm bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-primary focus:border-primary"
                     placeholder="Nhập mã tại đây"
                     type="text"
                     value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
+                    onChange={(e) => {
+                      setPromoCode(e.target.value);
+                      if (discountAmount > 0) handleRemovePromo();
+                    }}
+                    onFocus={handleFetchCoupons}
+                    disabled={discountAmount > 0}
                   />
-                  <button
-                    onClick={handleApplyPromo}
-                    className="px-4 py-2 bg-primary/10 text-primary font-bold text-sm rounded-lg hover:bg-primary/20 transition-colors"
-                  >
-                    Áp dụng
-                  </button>
+                  {discountAmount > 0 ? (
+                    <button
+                      onClick={handleRemovePromo}
+                      className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 font-bold text-sm rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      Hủy
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleApplyPromo()}
+                      disabled={applyingCoupon || !promoCode.trim()}
+                      className="px-4 py-2 bg-primary/10 text-primary font-bold text-sm rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    >
+                      {applyingCoupon ? '...' : 'Áp dụng'}
+                    </button>
+                  )}
                 </div>
+                {couponError && <p className="text-xs text-red-500 mt-2">{couponError}</p>}
+
+                {/* Dropdown list */}
+                {showCoupons && !discountAmount && coupons.length > 0 && (
+                  <div className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto w-full">
+                    <div className="p-2 flex justify-between items-center bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Mã của bạn</span>
+                      <button type="button" onClick={() => setShowCoupons(false)} className="text-gray-400 hover:text-gray-900">
+                         <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                    {coupons.map(cp => {
+                      const isEligible = calculateSubtotal() >= Number(cp.min_order || 0);
+                      return (
+                        <div key={cp.id} className={`p-3 border-b border-gray-50 dark:border-gray-700/50 last:border-0 flex justify-between items-center ${isEligible ? 'hover:bg-primary/5 cursor-pointer' : 'opacity-50 grayscale'}`} 
+                             onClick={() => {
+                                if (isEligible) handleApplyPromo(cp.code);
+                             }}>
+                          <div>
+                             <p className="font-bold text-primary flex items-center gap-1">
+                               <span className="material-symbols-outlined text-sm">local_activity</span>
+                               {cp.code}
+                             </p>
+                             <p className="text-xs text-gray-700 dark:text-gray-300 font-medium">{cp.title}</p>
+                             <p className="text-[10px] text-gray-500 mt-0.5 max-w-[200px] truncate">{cp.description}</p>
+                          </div>
+                          <div>
+                            {isEligible ? (
+                              <span className="text-[10px] bg-primary text-white px-2 py-1 rounded-full font-bold shadow-sm shadow-primary/30">Dùng</span>
+                            ) : (
+                              <span className="text-[10px] text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-full whitespace-nowrap border border-red-100">Chưa đủ ĐK</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                {showCoupons && !discountAmount && (
+                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowCoupons(false)}></div>
+                )}
               </div>
 
               <div className="space-y-4 mb-6 border-b border-gray-100 dark:border-gray-800 pb-6">

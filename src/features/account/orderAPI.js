@@ -65,7 +65,7 @@ export const getOrderById = async (orderId) => {
  */
 export const cancelOrder = async (orderId) => {
   const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {
-    method: 'POST',
+    method: 'PUT',
     headers: authHeaders(),
   });
 
@@ -79,13 +79,25 @@ export const cancelOrder = async (orderId) => {
 };
 
 /**
- * Create a new order (legacy — used by Checkout.jsx)
- * @param {object} orderData
- * @returns {object}
+ * Create a new order (real API)
+ * POST /api/orders
+ * body: { shipping_address_id, payment_method, note, coupon_code }
+ */
+export const createOrderAPI = async (orderData) => {
+  const response = await fetch(`${API_BASE_URL}/api/orders`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(orderData),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Lỗi khi tạo đơn hàng');
+  return data;
+};
+
+/**
+ * Legacy: createOrder (sync) — kept for backward compatibility
  */
 export const createOrder = (orderData) => {
-  // Legacy mock implementation for Checkout.jsx
-  // TODO: Replace with real API call POST /api/orders when Checkout is integrated
   return {
     id: Date.now(),
     orderId: `#PTS-${Math.floor(Math.random() * 1000000)}`,
@@ -93,5 +105,21 @@ export const createOrder = (orderData) => {
     orderDate: new Date().toISOString().split('T')[0],
     ...orderData,
   };
+};
+
+/**
+ * Submit a review for a product
+ * POST /api/reviews
+ * body: { product_id, order_id, rating, comment }
+ */
+export const createReviewAPI = async (reviewData) => {
+  const response = await fetch(`${API_BASE_URL}/api/reviews`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(reviewData),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Lỗi khi đánh giá');
+  return data;
 };
 

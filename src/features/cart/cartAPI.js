@@ -36,6 +36,7 @@ export const addCartItem = async (productId, quantity = 1, variantId = null) => 
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || 'Lỗi khi thêm vào giỏ hàng');
+  window.dispatchEvent(new Event('cartUpdated'));
   return data;
 };
 
@@ -52,6 +53,7 @@ export const updateCartItem = async (itemId, quantity) => {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || 'Lỗi khi cập nhật giỏ hàng');
+  window.dispatchEvent(new Event('cartUpdated'));
   return data;
 };
 
@@ -66,6 +68,7 @@ export const removeCartItem = async (itemId) => {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || 'Lỗi khi xóa sản phẩm');
+  window.dispatchEvent(new Event('cartUpdated'));
   return data;
 };
 
@@ -80,6 +83,7 @@ export const clearCart = async () => {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || 'Lỗi khi xóa giỏ hàng');
+  window.dispatchEvent(new Event('cartUpdated'));
   return data;
 };
 

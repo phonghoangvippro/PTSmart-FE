@@ -6,6 +6,7 @@ import { getCart, clearCart } from '../cart/cartAPI';
 import { createOrderAPI } from '../account/orderAPI';
 import { createVnpayPayment, createMomoPayment } from '../account/paymentAPI';
 import { getAddresses } from '../account/addressAPI';
+import { getMyCoupons, applyCoupon } from './couponAPI';
 import './Checkout.css';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -34,6 +35,13 @@ const Checkout = () => {
   // New address form (inline)
   const [showNewAddress, setShowNewAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({ name: '', phone: '', address: '', type: 'home' });
+
+  // Coupons
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState(null);
+  const [coupons, setCoupons] = useState([]);
+  const [showCoupons, setShowCoupons] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -70,6 +78,43 @@ const Checkout = () => {
     return sum + Number(price) * item.quantity;
   }, 0);
 
+  const handleFetchCoupons = async () => {
+    setShowCoupons(true);
+    if (coupons.length > 0) return;
+    try {
+      const res = await getMyCoupons();
+      setCoupons(res.data || []);
+    } catch {
+      // ignore silently since it's just suggestions
+    }
+  };
+
+  const handleApplyCoupon = async (code) => {
+    const codeToApply = code || couponCode;
+    if (!codeToApply.trim()) return;
+    
+    try {
+      setApplyingCoupon(true);
+      setCouponError(null);
+      
+      const res = await applyCoupon(codeToApply, subtotal);
+      setDiscountAmount(res.data?.discount || 0);
+      setCouponCode(codeToApply);
+      setShowCoupons(false);
+    } catch (err) {
+      setCouponError(err.message);
+      setDiscountAmount(0);
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setDiscountAmount(0);
+    setCouponError(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -90,7 +135,7 @@ const Checkout = () => {
       };
 
       if (selectedAddressId) {
-        orderPayload.shipping_address_id = selectedAddressId;
+        orderPayload.address_id = selectedAddressId;
       }
 
       const orderRes = await createOrderAPI(orderPayload);
@@ -314,20 +359,80 @@ const Checkout = () => {
                 </div>
 
                 {/* Coupon Code */}
-                <div className="flex gap-2 mb-6">
-                  <input
-                    className="flex-1 rounded-lg border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-sm focus:ring-primary focus:border-primary px-3 py-2"
-                    placeholder="Mã giảm giá"
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-sm font-bold rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Áp dụng
-                  </button>
+                <div className="mb-6 relative">
+                  <div className="flex gap-2 relative z-10">
+                    <input
+                      className="flex-1 rounded-lg border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-sm focus:ring-primary focus:border-primary px-3 py-2"
+                      placeholder="Mã giảm giá"
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => {
+                        setCouponCode(e.target.value);
+                        if (discountAmount > 0) handleRemoveCoupon();
+                      }}
+                      onFocus={handleFetchCoupons}
+                      disabled={discountAmount > 0}
+                    />
+                    {discountAmount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 font-bold text-sm rounded-lg hover:bg-red-200 transition-colors"
+                      >
+                        Hủy
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyCoupon()}
+                        disabled={applyingCoupon || !couponCode.trim()}
+                        className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-sm font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        {applyingCoupon ? '...' : 'Áp dụng'}
+                      </button>
+                    )}
+                  </div>
+                  {couponError && <p className="text-xs text-red-500 mt-2">{couponError}</p>}
+                  
+                  {/* Dropdown list */}
+                  {showCoupons && !discountAmount && coupons.length > 0 && (
+                    <div className="absolute top-12 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto w-full">
+                      <div className="p-2 flex justify-between items-center bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Mã của bạn</span>
+                        <button type="button" onClick={() => setShowCoupons(false)} className="text-gray-400 hover:text-gray-900">
+                           <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+                      {coupons.map(cp => {
+                        const isEligible = subtotal >= Number(cp.min_order || 0);
+                        return (
+                          <div key={cp.id} className={`p-3 border-b border-gray-50 dark:border-gray-700/50 last:border-0 flex justify-between items-center ${isEligible ? 'hover:bg-primary/5 cursor-pointer' : 'opacity-50 grayscale'}`} 
+                               onClick={() => {
+                                  if (isEligible) handleApplyCoupon(cp.code);
+                               }}>
+                            <div>
+                               <p className="font-bold text-primary flex items-center gap-1">
+                                 <span className="material-symbols-outlined text-sm">local_activity</span>
+                                 {cp.code}
+                               </p>
+                               <p className="text-xs text-gray-700 dark:text-gray-300 font-medium">{cp.title}</p>
+                               <p className="text-[10px] text-gray-500 mt-0.5 max-w-[200px] truncate">{cp.description}</p>
+                            </div>
+                            <div>
+                              {isEligible ? (
+                                <span className="text-[10px] bg-primary text-white px-2 py-1 rounded-full font-bold shadow-sm shadow-primary/30">Dùng</span>
+                              ) : (
+                                <span className="text-[10px] text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-full whitespace-nowrap border border-red-100">Chưa đủ ĐK</span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {showCoupons && !discountAmount && (
+                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowCoupons(false)}></div>
+                  )}
                 </div>
 
                 {/* Calculations */}
@@ -336,6 +441,12 @@ const Checkout = () => {
                     <span className="text-gray-500">Tạm tính ({cartItems.length} sản phẩm)</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                     <div className="flex justify-between text-sm text-green-600 font-semibold animate-scale-up">
+                       <span>Giảm giá</span>
+                       <span>- {formatPrice(discountAmount)}</span>
+                     </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Phí vận chuyển</span>
                     <span className="text-green-600 font-medium">Miễn phí</span>
@@ -343,7 +454,7 @@ const Checkout = () => {
                   <div className="flex justify-between items-end pt-2">
                     <span className="text-lg font-bold">Tổng cộng</span>
                     <div className="text-right">
-                      <p className="text-2xl font-black text-accent-pink leading-none">{formatPrice(subtotal)}</p>
+                      <p className="text-2xl font-black text-accent-pink leading-none">{formatPrice(Math.max(0, subtotal - discountAmount))}</p>
                       <p className="text-[10px] text-gray-400 mt-1">(Đã bao gồm VAT)</p>
                     </div>
                   </div>

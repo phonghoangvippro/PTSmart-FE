@@ -4,6 +4,7 @@ import Header from '../../shared/components/Header';
 import Footer from '../../shared/components/Footer';
 import WishlistButton from '../../shared/components/WishlistButton';
 import { fetchProducts } from './productAPI';
+import { addCartItem } from '../cart/cartAPI';
 import './ProductList.css';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -50,6 +51,7 @@ const ProductList = () => {
   const [priceFrom, setPriceFrom] = useState(minPrice);
   const [priceTo, setPriceTo] = useState(maxPrice);
   const [searchInput, setSearchInput] = useState(search);
+  const [addingToCartId, setAddingToCartId] = useState(null);
 
   // Sync local inputs when URL params change externally
   useEffect(() => { setPriceFrom(minPrice); }, [minPrice]);
@@ -118,6 +120,19 @@ const ProductList = () => {
     setPriceFrom('');
     setPriceTo('');
     setSearchInput('');
+  };
+
+  const handleAddToCart = async (e, productId) => {
+    e.preventDefault();
+    try {
+      setAddingToCartId(productId);
+      await addCartItem(productId, 1, null);
+      alert('Đã thêm sản phẩm vào giỏ hàng!');
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setAddingToCartId(null);
+    }
   };
 
   const getDiscountPercent = (price, salePrice) => {
@@ -448,11 +463,12 @@ const ProductList = () => {
                             )}
                           </div>
                           <button
-                            onClick={(e) => e.preventDefault()}
-                            className="w-full py-3 bg-slate-900 dark:bg-primary text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary dark:hover:bg-primary/80 transition-all"
+                            onClick={(e) => handleAddToCart(e, product.id)}
+                            disabled={addingToCartId === product.id || product.stock <= 0}
+                            className="w-full py-3 bg-slate-900 dark:bg-primary text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary dark:hover:bg-primary/80 transition-all disabled:opacity-50"
                           >
                             <span className="material-symbols-outlined text-lg">shopping_bag</span>
-                            Thêm vào giỏ
+                            {addingToCartId === product.id ? 'Đang thêm...' : 'Thêm vào giỏ'}
                           </button>
                         </div>
                       </div>
