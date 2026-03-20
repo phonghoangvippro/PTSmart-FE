@@ -1,56 +1,138 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../shared/components/Header';
 import Footer from '../../shared/components/Footer';
-import { getCartItems, updateCartItemQuantity, removeCartItem, clearCart } from './cartAPI';
+import { getCart, updateCartItem, removeCartItem, clearCart } from './cartAPI';
 import './Cart.css';
 
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
+const getImageUrl = (path) => {
+  if (!path) return 'https://placehold.co/80x80?text=No+Image';
+  if (path.startsWith('http')) return path;
+  return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + '₫';
+
 const Cart = () => {
-  const [cartItems, setCartItems] = useState(getCartItems());
+  const [cart, setCart] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [promoCode, setPromoCode] = useState('');
+  const [updatingId, setUpdatingId] = useState(null);
 
-  const handleQuantityChange = (itemId, newQuantity) => {
+  const fetchCart = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getCart();
+      setCart(res.data || null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const cartItems = cart?.items || [];
+
+  const handleQuantityChange = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
-    updateCartItemQuantity(itemId, newQuantity);
-    setCartItems(getCartItems());
+    try {
+      setUpdatingId(itemId);
+      const res = await updateCartItem(itemId, newQuantity);
+      setCart(res.data || cart);
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
-  const handleRemoveItem = (itemId) => {
-    removeCartItem(itemId);
-    setCartItems(getCartItems());
+  const handleRemoveItem = async (itemId) => {
+    try {
+      setUpdatingId(itemId);
+      await removeCartItem(itemId);
+      await fetchCart();
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
-  const handleClearCart = () => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa tất cả sản phẩm trong giỏ hàng?')) {
-      clearCart();
-      setCartItems(getCartItems());
+  const handleClearCart = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa tất cả sản phẩm trong giỏ hàng?')) return;
+    try {
+      setLoading(true);
+      await clearCart();
+      await fetchCart();
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+      setLoading(false);
     }
   };
 
   const handleApplyPromo = () => {
-    // Handle promo code logic here
     alert('Mã giảm giá đã được áp dụng!');
   };
 
+  const getItemPrice = (item) => {
+    const product = item.product;
+    if (!product) return 0;
+    return Number(product.sale_price || product.price) || 0;
+  };
+
   const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cartItems.reduce((total, item) => total + getItemPrice(item) * item.quantity, 0);
   };
 
-  const calculateDiscount = () => {
-    return 0; // Can be calculated based on promo code
-  };
+  const calculateDiscount = () => 0;
 
-  const calculateTotal = () => {
-    return calculateSubtotal() - calculateDiscount();
-  };
+  const calculateTotal = () => calculateSubtotal() - calculateDiscount();
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN').format(price) + '₫';
-  };
+  // Loading
+  if (loading) {
+    return (
+      <div className="cart-page min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
+  // Error
+  if (error) {
+    return (
+      <div className="cart-page min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow max-w-[1280px] mx-auto w-full px-4 md:px-10 py-6">
+          <div className="text-center py-20">
+            <span className="material-symbols-outlined text-6xl text-red-300 mb-4">error</span>
+            <h2 className="text-2xl font-bold mb-4 text-red-500">{error}</h2>
+            <p className="text-gray-500 mb-6">Vui lòng đăng nhập để xem giỏ hàng</p>
+            <Link to="/login" className="inline-flex items-center gap-2 bg-primary text-white font-bold px-8 py-3 rounded-xl hover:bg-blue-700 transition-all">
+              Đăng nhập
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Empty cart
   if (cartItems.length === 0) {
     return (
-      <div className="cart-page">
+      <div className="cart-page min-h-screen flex flex-col">
         <Header />
         <main className="flex-grow max-w-[1280px] mx-auto w-full px-4 md:px-10 py-6">
           <div className="text-center py-20">
@@ -58,7 +140,7 @@ const Cart = () => {
             <h2 className="text-2xl font-bold mb-4">Giỏ hàng của bạn đang trống</h2>
             <p className="text-gray-500 mb-8">Hãy thêm sản phẩm vào giỏ hàng để tiếp tục mua sắm</p>
             <Link
-              to="/laptops"
+              to="/san-pham"
               className="inline-flex items-center gap-2 bg-primary text-white font-bold px-8 py-3 rounded-xl hover:bg-blue-700 transition-all"
             >
               <span className="material-symbols-outlined">arrow_back</span>
@@ -98,61 +180,77 @@ const Cart = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {cartItems.map((item) => (
-                    <tr key={item.id} className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                      <td className="px-6 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="size-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                            <img className="w-full h-full object-cover" alt={item.name} src={item.image} />
+                  {cartItems.map((item) => {
+                    const product = item.product;
+                    const price = getItemPrice(item);
+                    const isUpdating = updatingId === item.id;
+
+                    return (
+                      <tr key={item.id} className={`group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors ${isUpdating ? 'opacity-50' : ''}`}>
+                        <td className="px-6 py-6">
+                          <div className="flex items-center gap-4">
+                            <div className="size-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+                              <img className="w-full h-full object-cover" alt={product?.name} src={getImageUrl(product?.thumbnail)} />
+                            </div>
+                            <div>
+                              <Link to={`/product/${product?.slug}`} className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                                {product?.name || item.product_name}
+                              </Link>
+                              {item.variant && (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{item.variant.name || 'Mặc định'}</p>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">{item.name}</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{item.variant}</p>
+                        </td>
+                        <td className="px-6 py-6 text-center text-sm font-medium text-gray-600 dark:text-gray-300">
+                          {formatPrice(price)}
+                          {product?.sale_price && Number(product.sale_price) < Number(product.price) && (
+                            <p className="text-xs text-gray-400 line-through">{formatPrice(product.price)}</p>
+                          )}
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex items-center justify-center">
+                            <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg">
+                              <button
+                                onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                disabled={isUpdating || item.quantity <= 1}
+                                className="p-1 px-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 disabled:opacity-30"
+                              >
+                                <span className="material-symbols-outlined text-lg">remove</span>
+                              </button>
+                              <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
+                              <button
+                                onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                disabled={isUpdating}
+                                className="p-1 px-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 disabled:opacity-30"
+                              >
+                                <span className="material-symbols-outlined text-lg">add</span>
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6 text-center text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {formatPrice(item.price)}
-                      </td>
-                      <td className="px-6 py-6">
-                        <div className="flex items-center justify-center">
-                          <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg">
-                            <button
-                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                              className="p-1 px-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"
-                            >
-                              <span className="material-symbols-outlined text-lg">remove</span>
-                            </button>
-                            <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
-                            <button
-                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                              className="p-1 px-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"
-                            >
-                              <span className="material-symbols-outlined text-lg">add</span>
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6 text-right font-bold text-gray-900 dark:text-white">
-                        {formatPrice(item.price * item.quantity)}
-                      </td>
-                      <td className="px-6 py-6 text-center">
-                        <button
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <span className="material-symbols-outlined">delete_outline</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-6 py-6 text-right font-bold text-gray-900 dark:text-white">
+                          {formatPrice(price * item.quantity)}
+                        </td>
+                        <td className="px-6 py-6 text-center">
+                          <button
+                            onClick={() => handleRemoveItem(item.id)}
+                            disabled={isUpdating}
+                            className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-30"
+                          >
+                            <span className="material-symbols-outlined">delete_outline</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             <div className="flex justify-between items-center mt-6">
               <Link
-                to="/laptops"
+                to="/san-pham"
                 className="flex items-center gap-2 text-primary font-medium hover:underline"
               >
                 <span className="material-symbols-outlined">arrow_back</span>
