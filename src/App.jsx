@@ -40,7 +40,7 @@ function App() {
           <Route path="/account/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
           <Route path="/khuyen-mai" element={<ProtectedRoute><PromotionsPage /></ProtectedRoute>} />
           <Route path="/lien-he" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
-          <Route path="/flash-sale" element={<ProtectedRoute><FlashSalePage /></ProtectedRoute>} />
+          <Route path="/flash-sale" element={<FlashSalePage />} />
           <Route path="/tin-tuc" element={<ProtectedRoute><NewsPage /></ProtectedRoute>} />
         </Routes>
       </div>
