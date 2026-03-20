@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginAPI } from './authAPI';
+import { loginAPI, registerAPI } from './authAPI';
 import './LoginPage.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [isLoginView, setIsLoginView] = useState(true);
+
+  // Login states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
+  // Register states
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -18,19 +27,38 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const data = await loginAPI(email, password);
+      if (isLoginView) {
+        const data = await loginAPI(email, password);
 
-      // Store user info and token in localStorage
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('userToken', data.token);
+        // Store user info and token in localStorage
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('userToken', data.token);
 
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        }
+
+        navigate('/');
+      } else {
+        // Register logic
+        if (password !== confirmPassword) {
+          throw new Error('Mật khẩu xác nhận không khớp');
+        }
+        const data = await registerAPI({ 
+          name, 
+          email, 
+          password, 
+          password_confirmation: confirmPassword, 
+          phone 
+        });
+
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('userToken', data.token);
+
+        navigate('/');
       }
-
-      navigate('/');
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      setError(err.message || (isLoginView ? 'Đăng nhập thất bại. Vui lòng thử lại.' : 'Đăng ký thất bại. Vui lòng thử lại.'));
     } finally {
       setLoading(false);
     }
@@ -85,10 +113,10 @@ const LoginPage = () => {
               </Link>
             </div>
             <h1 className="font-display text-4xl font-bold text-[#0d121b] tracking-tight mb-3">
-              Đăng nhập
+              {isLoginView ? 'Đăng nhập' : 'Đăng ký'}
             </h1>
             <p className="text-gray-500 font-medium">
-              Chào mừng trở lại với hệ thống PTSmart.
+              {isLoginView ? 'Chào mừng trở lại với hệ thống PTSmart.' : 'Tạo tài khoản mới để trải nghiệm hết các tiện ích của PTSmart.'}
             </p>
           </div>
 
@@ -101,6 +129,34 @@ const LoginPage = () => {
                 {error}
               </div>
             )}
+            {/* Extra Register Fields */}
+            {!isLoginView && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-500 px-1">Tên hiển thị</label>
+                  <input
+                    className="w-full px-5 py-4 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all duration-300 placeholder:text-gray-400 outline-none"
+                    placeholder="Họ và tên"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-500 px-1">Điện thoại</label>
+                  <input
+                    className="w-full px-5 py-4 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all duration-300 placeholder:text-gray-400 outline-none"
+                    placeholder="0XXXXXXXXX"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Email Field */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-500 px-1">
@@ -113,6 +169,7 @@ const LoginPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -129,6 +186,7 @@ const LoginPage = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
                 <button
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
@@ -142,28 +200,47 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Helpers */}
-            <div className="flex items-center justify-between py-2">
-              <label className="flex items-center cursor-pointer group">
-                <div className="relative flex items-center">
+            {/* Confirm Password Field for Register */}
+            {!isLoginView && (
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-500 px-1">Xác nhận mật khẩu</label>
+                <div className="relative group">
                   <input
-                    className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-offset-0 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-full px-5 py-4 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all duration-300 placeholder:text-gray-400 outline-none pr-14"
+                    placeholder="••••••••"
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
                   />
                 </div>
-                <span className="ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-700 transition-colors">
-                  Ghi nhớ đăng nhập
-                </span>
-              </label>
-              <a
-                className="text-sm font-bold text-primary hover:text-blue-800 transition-colors"
-                href="#"
-              >
-                Quên mật khẩu?
-              </a>
-            </div>
+              </div>
+            )}
+
+            {/* Helpers (Only show in login view) */}
+            {isLoginView && (
+              <div className="flex items-center justify-between py-2">
+                <label className="flex items-center cursor-pointer group">
+                  <div className="relative flex items-center">
+                    <input
+                      className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-offset-0 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
+                  </div>
+                  <span className="ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-700 transition-colors">
+                    Ghi nhớ đăng nhập
+                  </span>
+                </label>
+                <a
+                  className="text-sm font-bold text-primary hover:text-blue-800 transition-colors"
+                  href="#"
+                >
+                  Quên mật khẩu?
+                </a>
+              </div>
+            )}
 
             {/* Primary Action */}
             <button
@@ -171,7 +248,7 @@ const LoginPage = () => {
               type="submit"
               disabled={loading}
             >
-              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              {loading ? 'Đang xử lý...' : (isLoginView ? 'Đăng nhập' : 'Đăng ký ngay')}
             </button>
           </form>
 
@@ -182,7 +259,7 @@ const LoginPage = () => {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-white px-4 text-gray-400 font-bold tracking-widest">
-                Hoặc đăng nhập với
+                {isLoginView ? 'Hoặc đăng nhập với' : 'Hoặc đăng ký bằng'}
               </span>
             </div>
           </div>
@@ -209,10 +286,17 @@ const LoginPage = () => {
           {/* Footer Link */}
           <div className="text-center">
             <p className="text-gray-500 font-medium">
-              Chưa có tài khoản?{' '}
-              <a className="text-accent-pink font-bold hover:underline ml-1" href="#">
-                Đăng ký ngay
-              </a>
+              {isLoginView ? 'Chưa có tài khoản? ' : 'Đã có tài khoản? '}
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsLoginView(!isLoginView);
+                  setError('');
+                }} 
+                className="text-accent-pink font-bold hover:underline ml-1"
+              >
+                {isLoginView ? 'Đăng ký ngay' : 'Đăng nhập'}
+              </button>
             </p>
           </div>
         </div>

@@ -27,6 +27,30 @@ export const loginAPI = async (email, password) => {
 };
 
 /**
+ * Register API call
+ * @param {object} userData 
+ * @returns {Promise<{message: string, user: object, token: string}>}
+ */
+export const registerAPI = async (userData) => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Đăng ký thất bại');
+  }
+
+  return data;
+};
+
+/**
  * Get the stored auth token
  */
 export const getUserToken = () => {
