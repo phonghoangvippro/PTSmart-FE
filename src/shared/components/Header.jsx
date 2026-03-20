@@ -1,8 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getCartCount } from '../../features/cart/cartAPI';
 import { logoutUser } from '../../features/auth/authAPI';
+import { searchAutocomplete } from '../../features/product/productAPI';
 import './Header.css';
+
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
+const getImageUrl = (path) => {
+  if (!path) return 'https://placehold.co/40x40?text=SP';
+  if (path.startsWith('http')) return path;
+  return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + '₫';
 
 const Header = () => {
   const cartCount = getCartCount();
@@ -11,6 +22,14 @@ const Header = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [user, setUser] = useState(null);
   const dropdownRef = useRef(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchRef = useRef(null);
+  const debounceRef = useRef(null);
 
   // Check login state
   useEffect(() => {
@@ -26,10 +45,20 @@ const Header = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearch(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close search on route change
+  useEffect(() => {
+    setShowSearch(false);
+    setSearchQuery('');
+    setSearchResults(null);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logoutUser();
@@ -38,9 +67,44 @@ const Header = () => {
     navigate('/login');
   };
 
+  // Debounced autocomplete search
+  const handleSearchInput = useCallback((value) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (value.trim().length < 2) {
+      setSearchResults(null);
+      setShowSearch(false);
+      return;
+    }
+
+    setShowSearch(true);
+    setSearchLoading(true);
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await searchAutocomplete(value.trim());
+        setSearchResults(data);
+      } catch {
+        setSearchResults(null);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+  }, []);
+
+  // Navigate to full search results on Enter
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setShowSearch(false);
+      navigate(`/san-pham?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   const navLinks = [
     { label: 'Trang chủ', to: '/' },
-    { label: 'Sản phẩm', to: '/laptops' },
+    { label: 'Sản phẩm', to: '/san-pham' },
     { label: 'Khuyến mãi', to: '/khuyen-mai' },
     { label: 'Flash Sale', to: '/flash-sale', icon: 'bolt', iconColor: 'text-accent-pink' },
     { label: 'Tin tức', to: '/tin-tuc' },
@@ -51,6 +115,9 @@ const Header = () => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
+
+  const suggestedProducts = searchResults?.products || [];
+  const suggestedCategories = searchResults?.categories || [];
 
   return (
     <>
@@ -66,15 +133,128 @@ const Header = () => {
               <h1 className="text-2xl font-bold tracking-tight text-primary">PTSmart</h1>
             </Link>
           </div>
-          
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl hidden md:block">
-            <div className="relative group">
+
+          {/* Search Bar with Autocomplete */}
+          <div className="flex-1 max-w-2xl hidden md:block relative" ref={searchRef}>
+            <form onSubmit={handleSearchSubmit} className="relative group">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">search</span>
-              <input className="w-full pl-12 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-sm outline-none transition-all" placeholder="Tìm kiếm điện thoại, laptop, phụ kiện..." type="text" />
-            </div>
+              <input
+                className="w-full pl-12 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-sm outline-none transition-all"
+                placeholder="Tìm kiếm điện thoại, laptop, phụ kiện..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchInput(e.target.value)}
+                onFocus={() => { if (searchResults) setShowSearch(true); }}
+                autoComplete="off"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchQuery(''); setSearchResults(null); setShowSearch(false); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              )}
+            </form>
+
+            {/* Search Dropdown */}
+            {showSearch && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl shadow-black/10 border border-gray-100 dark:border-gray-700 overflow-hidden z-[999] max-h-[480px] overflow-y-auto">
+                {searchLoading ? (
+                  <div className="p-6 flex items-center justify-center gap-3 text-sm text-slate-500">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                    Đang tìm kiếm...
+                  </div>
+                ) : (
+                  <>
+                    {/* Category Suggestions */}
+                    {suggestedCategories.length > 0 && (
+                      <div className="px-4 pt-3 pb-2">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Danh mục</p>
+                        <div className="flex flex-wrap gap-2">
+                          {suggestedCategories.map((cat) => (
+                            <Link
+                              key={cat.id}
+                              to={`/san-pham?category=${cat.slug}`}
+                              onClick={() => setShowSearch(false)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-medium rounded-full transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-sm">category</span>
+                              {cat.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Product Suggestions */}
+                    {suggestedProducts.length > 0 && (
+                      <div className="px-2 py-2">
+                        {suggestedCategories.length > 0 && (
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Sản phẩm</p>
+                        )}
+                        {suggestedProducts.map((product) => (
+                          <Link
+                            key={product.id}
+                            to={`/product/${product.id}`}
+                            onClick={() => setShowSearch(false)}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
+                          >
+                            <img
+                              src={getImageUrl(product.thumbnail)}
+                              alt={product.name}
+                              className="w-10 h-10 object-contain rounded-lg bg-slate-100 dark:bg-slate-700 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-800 dark:text-white group-hover:text-primary transition-colors truncate">
+                                {product.name}
+                              </p>
+                              {product.category && (
+                                <p className="text-[11px] text-slate-400">{product.category.name}</p>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold text-primary">
+                                {formatPrice(product.sale_price || product.price)}
+                              </p>
+                              {product.sale_price && Number(product.sale_price) < Number(product.price) && (
+                                <p className="text-[11px] text-slate-400 line-through">
+                                  {formatPrice(product.price)}
+                                </p>
+                              )}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* No results */}
+                    {suggestedProducts.length === 0 && suggestedCategories.length === 0 && !searchLoading && (
+                      <div className="p-6 text-center text-sm text-slate-500">
+                        <span className="material-symbols-outlined text-3xl text-slate-300 mb-2">search_off</span>
+                        <p>Không tìm thấy kết quả cho "<strong>{searchQuery}</strong>"</p>
+                      </div>
+                    )}
+
+                    {/* View all results */}
+                    {(suggestedProducts.length > 0 || suggestedCategories.length > 0) && (
+                      <div className="border-t border-slate-100 dark:border-slate-700 p-2">
+                        <button
+                          onClick={() => { setShowSearch(false); navigate(`/san-pham?search=${encodeURIComponent(searchQuery.trim())}`); }}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">search</span>
+                          Xem tất cả kết quả cho "{searchQuery}"
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
-          
+
           {/* Utilities */}
           <div className="flex items-center gap-4">
             <Link to="/cart" className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
@@ -89,7 +269,7 @@ const Header = () => {
               <span className="material-symbols-outlined">person</span>
             </Link>
             <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700 mx-2"></div>
-            
+
             {/* Profile Image with Dropdown */}
             <div className="relative" ref={dropdownRef}>
               {user ? (
@@ -188,7 +368,7 @@ const Header = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Navigation Sub-bar */}
         <nav className="bg-white dark:bg-background-dark border-b border-[#e7ebf3] dark:border-gray-800">
           <div className="max-w-[1280px] mx-auto px-10 flex items-center justify-center md:justify-start gap-10 h-12 overflow-x-auto no-scrollbar">
@@ -203,7 +383,7 @@ const Header = () => {
                 to={link.to}
               >
                 {link.icon && (
-                  <span className={`material-symbols-outlined text-sm ${isActive(link.to) ? link.iconColor : link.iconColor}`}>{link.icon}</span>
+                  <span className={`material-symbols-outlined text-sm ${link.iconColor}`}>{link.icon}</span>
                 )}
                 {link.label}
               </Link>

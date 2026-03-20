@@ -111,7 +111,7 @@ const FlashSaleSection = ({ sale, isUpcoming = false }) => {
 
           return (
             <Link
-              to={`/product/${product.slug}`}
+              to={`/product/${product.id}`}
               key={`${sale.id}-${product.id}`}
               className={`group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:shadow-2xl transition-all duration-300 ${isSoldOut ? 'opacity-60 pointer-events-none' : ''}`}
             >

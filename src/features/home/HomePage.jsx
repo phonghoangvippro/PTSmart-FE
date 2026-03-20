@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../shared/components/Header';
 import Footer from '../../shared/components/Footer';
+import WishlistButton from '../../shared/components/WishlistButton';
 import { getHomeData } from './homeAPI';
 import './HomePage.css';
 
@@ -183,10 +184,11 @@ const HomePage = () => {
               const isSoldOut = item.sold >= item.quantity;
 
               return (
-              <Link to={`/product/${product.slug}`} key={item.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-transparent hover:border-primary/20 hover:shadow-2xl transition-all relative group overflow-hidden">
+              <Link to={`/product/${product.id}`} key={item.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-transparent hover:border-primary/20 hover:shadow-2xl transition-all relative group overflow-hidden">
                 {discountPercentage > 0 && (
                   <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
                 )}
+                <WishlistButton productId={product.id} className="absolute top-4 right-4 z-10" />
                 <div className="aspect-square w-full mb-4 bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden">
                   <img alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src={getImageUrl(product.thumbnail)} />
                 </div>
@@ -230,10 +232,11 @@ const HomePage = () => {
             {featured_products.slice(0, 10).map((product) => {
               const discountPercentage = product.sale_price ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
               return (
-              <Link to={`/product/${product.slug}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
+              <Link to={`/product/${product.id}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
                 {discountPercentage > 0 && (
                   <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
                 )}
+                <WishlistButton productId={product.id} className="absolute top-4 right-4 z-10" />
                 <div className="aspect-square w-full mb-4 bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden">
                   <img alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={getImageUrl(product.thumbnail)} />
                 </div>
@@ -266,11 +269,12 @@ const HomePage = () => {
             {new_products.slice(0, 5).map((product) => {
               const discountPercentage = product.sale_price ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
               return (
-              <Link to={`/product/${product.slug}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
-                <div className="absolute top-4 right-4 z-10 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">New</div>
+              <Link to={`/product/${product.id}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
+                <div className="absolute top-4 left-4 z-10 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">New</div>
                 {discountPercentage > 0 && (
-                  <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
+                  <div className="absolute top-12 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
                 )}
+                <WishlistButton productId={product.id} className="absolute top-4 right-4 z-10" />
                 <div className="aspect-square w-full mb-4 bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden">
                   <img alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={getImageUrl(product.thumbnail)} />
                 </div>
@@ -303,10 +307,11 @@ const HomePage = () => {
             {best_sellers.slice(0, 5).map((product) => {
               const discountPercentage = product.sale_price ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
               return (
-              <Link to={`/product/${product.slug}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
+              <Link to={`/product/${product.id}`} key={product.id} className="block bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all relative group overflow-hidden">
                 {discountPercentage > 0 && (
                   <div className="absolute top-4 left-4 z-10 bg-accent-pink text-white text-xs font-bold px-3 py-1 rounded-full">-{discountPercentage}%</div>
                 )}
+                <WishlistButton productId={product.id} className="absolute top-4 right-4 z-10" />
                 <div className="aspect-square w-full mb-4 bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden">
                   <img alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={getImageUrl(product.thumbnail)} />
                 </div>

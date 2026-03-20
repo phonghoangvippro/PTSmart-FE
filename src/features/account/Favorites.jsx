@@ -110,7 +110,7 @@ const Favorites = () => {
                     isRemoving ? 'opacity-50 pointer-events-none' : ''
                   }`}
                 >
-                  <Link to={`/product/${product.slug}`} className="w-full sm:w-40 h-40 rounded-lg bg-slate-50 dark:bg-slate-800 overflow-hidden shrink-0 block">
+                  <Link to={`/product/${product.id}`} className="w-full sm:w-40 h-40 rounded-lg bg-slate-50 dark:bg-slate-800 overflow-hidden shrink-0 block">
                     <img
                       src={getImageUrl(product.thumbnail)}
                       alt={product.name}
@@ -135,7 +135,7 @@ const Favorites = () => {
                           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
                         </button>
                       </div>
-                      <Link to={`/product/${product.slug}`}>
+                      <Link to={`/product/${product.id}`}>
                         <h3 className="text-slate-900 dark:text-white font-bold text-lg mt-1 line-clamp-1 hover:text-primary transition-colors">{product.name}</h3>
                       </Link>
                       <p className="text-primary text-xl font-bold mt-1">{formatPrice(displayPrice)}</p>
@@ -148,7 +148,7 @@ const Favorites = () => {
                     </div>
                     <div className="flex gap-2 mt-4">
                       <Link
-                        to={`/product/${product.slug}`}
+                        to={`/product/${product.id}`}
                         className="flex-1 bg-primary text-white text-xs font-bold py-2.5 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                       >
                         <span className="material-symbols-outlined text-sm">visibility</span>

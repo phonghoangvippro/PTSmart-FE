@@ -193,7 +193,7 @@ const Cart = () => {
                               <img className="w-full h-full object-cover" alt={product?.name} src={getImageUrl(product?.thumbnail)} />
                             </div>
                             <div>
-                              <Link to={`/product/${product?.slug}`} className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                              <Link to={`/product/${product?.id}`} className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                                 {product?.name || item.product_name}
                               </Link>
                               {item.variant && (

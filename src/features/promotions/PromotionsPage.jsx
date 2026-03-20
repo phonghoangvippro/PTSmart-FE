@@ -296,7 +296,7 @@ const PromotionsPage = () => {
                               {promo.products.map((prod) => (
                                 <Link
                                   key={prod.id}
-                                  to={`/product/${prod.slug}`}
+                                  to={`/product/${prod.id}`}
                                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                 >
                                   <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
@@ -355,7 +355,7 @@ const PromotionsPage = () => {
 
                 return (
                   <Link
-                    to={`/product/${product.slug}`}
+                    to={`/product/${product.id}`}
                     key={product.id}
                     className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col h-full hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
                   >
