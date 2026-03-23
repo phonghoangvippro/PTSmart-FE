@@ -81,6 +81,14 @@ const PromotionsPage = () => {
     return () => clearInterval(interval);
   }, [banners.length]);
 
+  const prevBanner = () => {
+    setCurrentBannerIndex((prevIndex) => (prevIndex === 0 ? banners.length - 1 : prevIndex - 1));
+  };
+
+  const nextBanner = () => {
+    setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % banners.length);
+  };
+
   // Load more discounted products
   const handleLoadMore = async () => {
     if (!pagination || pagination.currentPage >= pagination.lastPage) return;
@@ -167,21 +175,25 @@ const PromotionsPage = () => {
               </span>
               <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">{currentBanner.title}</h1>
               <p className="text-white/80 text-lg">{currentBanner.subtitle}</p>
-              <div className="flex gap-4 pt-2">
-                {currentBanner.link ? (
-                  <Link to={currentBanner.link} className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
-                    Xem ngay <span className="material-symbols-outlined">trending_flat</span>
-                  </Link>
-                ) : (
-                  <button className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
-                    Mua sắm ngay <span className="material-symbols-outlined">trending_flat</span>
-                  </button>
-                )}
-                <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 px-8 py-3 rounded-xl font-bold transition-all">
-                  Xem thêm
-                </button>
-              </div>
             </div>
+
+            {/* Navigation Arrows */}
+            {banners.length > 1 && (
+              <>
+                <button 
+                  onClick={prevBanner}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-30 size-12 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/40 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <span className="material-symbols-outlined text-3xl">chevron_left</span>
+                </button>
+                <button 
+                  onClick={nextBanner}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-30 size-12 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/40 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <span className="material-symbols-outlined text-3xl">chevron_right</span>
+                </button>
+              </>
+            )}
 
             {/* Slider Dots */}
             {banners.length > 1 && (

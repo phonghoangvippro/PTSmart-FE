@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Sidebar from '../../shared/components/Sidebar';
 import Header from '../../shared/components/Header';
 import { getProducts, deleteProduct } from './productAPI';
@@ -13,6 +13,9 @@ const formatCurrency = (value) => {
 const IMG_BASE = 'http://192.168.0.243:8000';
 
 const ProductList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +28,7 @@ const ProductList = () => {
     to: 0,
   });
 
-  const fetchProducts = useCallback(async (page = 1) => {
+  const fetchProducts = useCallback(async (page) => {
     setLoading(true);
     try {
       const res = await getProducts(page, 15);
@@ -45,15 +48,15 @@ const ProductList = () => {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchProducts(currentPage);
+  }, [currentPage, fetchProducts]);
 
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${name}"?`)) return;
     setDeleting(id);
     try {
       await deleteProduct(id);
-      fetchProducts(pagination.currentPage);
+      fetchProducts(currentPage);
     } catch (err) {
       alert('Xóa sản phẩm thất bại: ' + err.message);
     } finally {
@@ -63,7 +66,7 @@ const ProductList = () => {
 
   const handlePageChange = (page) => {
     if (page < 1 || page > pagination.lastPage) return;
-    fetchProducts(page);
+    setSearchParams({ page: String(page) });
   };
 
   // Client-side search filter
@@ -261,7 +264,7 @@ const ProductList = () => {
                               <td className="px-6 py-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
                                   <Link
-                                    to={`/admin/products/${product.id}/edit`}
+                                    to={`/admin/products/${product.id}/edit?page=${currentPage}`}
                                     className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                                     title="Chỉnh sửa"
                                   >

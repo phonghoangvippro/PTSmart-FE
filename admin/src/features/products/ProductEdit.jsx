@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import Sidebar from '../../shared/components/Sidebar';
 import Header from '../../shared/components/Header';
 import { getProducts, createProduct, updateProduct, uploadProductImages } from './productAPI';
@@ -12,7 +12,10 @@ const IMG_BASE = 'http://192.168.0.243:8000';
 const ProductEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnPage = searchParams.get('page') || '1';
   const isNew = !id;
+  const backUrl = `/admin/products?page=${returnPage}`;
 
   const [product, setProduct] = useState({
     name: '',
@@ -62,9 +65,27 @@ const ProductEdit = () => {
         setBrandsList(brandsData);
 
         // Load product for edit
+        // Backend không có GET /products/{id}, dùng list API với đúng trang
         if (id) {
-          const res = await getProducts(1, 100);
-          const found = (res.data || []).find(p => p.id === parseInt(id));
+          const productId = parseInt(id);
+          const targetPage = parseInt(returnPage) || 1;
+          let found = null;
+
+          // Tìm trong trang hiện tại trước (nhanh nhất)
+          const res = await getProducts(targetPage, 15);
+          found = (res.data || []).find(p => p.id === productId) || null;
+
+          // Nếu không thấy (ví dụ user vào URL trực tiếp không có ?page),
+          // thử tìm ở các trang lân cận
+          if (!found && targetPage > 1) {
+            const prevRes = await getProducts(targetPage - 1, 15);
+            found = (prevRes.data || []).find(p => p.id === productId) || null;
+          }
+          if (!found) {
+            const nextRes = await getProducts(targetPage + 1, 15);
+            found = (nextRes.data || []).find(p => p.id === productId) || null;
+          }
+
           if (found) {
             setProduct({
               name: found.name || '',
@@ -84,6 +105,8 @@ const ProductEdit = () => {
             if (found.images && found.images.length > 0) {
               setExistingImages(found.images);
             }
+          } else {
+            setError(`Không tìm thấy sản phẩm ID: ${id}`);
           }
         }
       } catch (err) {
@@ -167,7 +190,7 @@ const ProductEdit = () => {
         }
       }
 
-      navigate('/admin/products');
+      navigate(backUrl);
     } catch (err) {
       setError(err.message || 'Lưu sản phẩm thất bại');
     } finally {
@@ -223,7 +246,8 @@ const ProductEdit = () => {
           <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6">
             <Link className="hover:text-primary" to="/admin">Trang chủ</Link>
             <span className="material-symbols-outlined text-xs">chevron_right</span>
-            <Link className="hover:text-primary" to="/admin/products">Sản phẩm</Link>
+            <Link
+                className="hover:text-primary" to={backUrl}>Sản phẩm</Link>
             <span className="material-symbols-outlined text-xs">chevron_right</span>
             <span className="text-slate-900 dark:text-slate-200 font-medium">
               {isNew ? 'Thêm mới' : 'Chỉnh sửa'}
@@ -249,7 +273,7 @@ const ProductEdit = () => {
             </div>
             <div className="flex gap-3">
               <Link
-                to="/admin/products"
+                to={backUrl}
                 className="px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Hủy

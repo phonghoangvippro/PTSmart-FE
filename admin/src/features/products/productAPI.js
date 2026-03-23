@@ -31,6 +31,20 @@ export const getProducts = async (page = 1, perPage = 15) => {
 };
 
 /**
+ * Get a single product by ID
+ * @param {number} id - Product ID
+ * @returns {Promise} Product detail object
+ */
+export const getProductById = async (id) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/admin/products/${id}`,
+    { headers: authHeaders() }
+  );
+  if (!response.ok) throw new Error('Failed to fetch product');
+  return response.json();
+};
+
+/**
  * Create a new product (FormData for file uploads)
  * Fields: name, description, category_id, brand_id, price, sale_price, stock, is_featured, status, thumbnail, images[]
  */

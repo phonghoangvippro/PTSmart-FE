@@ -56,6 +56,14 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, [heroBanners.length]);
 
+  const prevBanner = () => {
+    setCurrentBannerIndex((prevIndex) => (prevIndex === 0 ? heroBanners.length - 1 : prevIndex - 1));
+  };
+
+  const nextBanner = () => {
+    setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % heroBanners.length);
+  };
+
   if (loading) {
     return (
       <div className="homepage flex flex-col min-h-screen">
@@ -108,17 +116,26 @@ const HomePage = () => {
               {currentBanner.subtitle || 'SIÊU TIỆC CÔNG NGHỆ'}
             </span>
             <h2 className="text-5xl font-extrabold leading-tight">{currentBanner.title}</h2>
-            <div className="flex gap-4 pt-4">
-              {currentBanner.link ? (
-                <Link to={currentBanner.link} className="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">
-                  Xem ngay
-                </Link>
-              ) : (
-                <button className="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">Mua ngay</button>
-              )}
-            </div>
           </div>
           
+          {/* Navigation Arrows */}
+          {heroBanners.length > 1 && (
+            <>
+              <button 
+                onClick={prevBanner}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-30 size-12 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/40 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+              >
+                <span className="material-symbols-outlined text-3xl">chevron_left</span>
+              </button>
+              <button 
+                onClick={nextBanner}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-30 size-12 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/40 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+              >
+                <span className="material-symbols-outlined text-3xl">chevron_right</span>
+              </button>
+            </>
+          )}
+
           {/* Slider Dots */}
           {heroBanners.length > 1 && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
@@ -172,7 +189,7 @@ const HomePage = () => {
                 {flash_sale.title || 'FLASH SALE'}
               </h2>
             </div>
-            <button className="text-primary font-bold hover:bg-primary/10 px-6 py-2 rounded-xl transition-colors">Xem tất cả</button>
+            <Link to="/san-pham?type=flash_sale" className="text-primary font-bold hover:bg-primary/10 px-6 py-2 rounded-xl transition-colors">Xem tất cả</Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {flash_sale.items.map((item) => {
@@ -227,6 +244,7 @@ const HomePage = () => {
               <span className="material-symbols-outlined text-primary">star</span>
               Sản phẩm nổi bật
             </h2>
+            <Link to="/san-pham?is_featured=1" className="text-primary font-bold py-2 hover:underline transition-colors text-sm">Xem tất cả &gt;</Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {featured_products.slice(0, 10).map((product) => {
@@ -264,6 +282,7 @@ const HomePage = () => {
               <span className="material-symbols-outlined text-primary">new_releases</span>
               Sản phẩm mới nhất
             </h2>
+            <Link to="/san-pham?sort=new" className="text-primary font-bold py-2 hover:underline transition-colors text-sm">Xem tất cả &gt;</Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {new_products.slice(0, 5).map((product) => {
@@ -302,6 +321,7 @@ const HomePage = () => {
               <span className="material-symbols-outlined text-primary">trending_up</span>
               Bán chạy nhất
             </h2>
+            <Link to="/san-pham?sort=bestseller" className="text-primary font-bold py-2 hover:underline transition-colors text-sm">Xem tất cả &gt;</Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {best_sellers.slice(0, 5).map((product) => {
